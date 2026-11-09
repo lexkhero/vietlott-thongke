@@ -200,6 +200,8 @@
 
   /* ============================================================ bảng số kiểu phiếu dự thưởng */
   function heatClass(z) { return z <= -2 ? 'cold-2' : z <= -1 ? 'cold-1' : z < 1 ? '' : z < 2 ? 'hot-1' : 'hot-2'; }
+  // Nhãn tổng số lần về (cùng thang với Bảng số): tc-2 ít hẳn, tc-1 ít, th-1 nhiều, th-2 nhiều hẳn
+  function totCls(z) { return z <= -2 ? 'tc-2' : z <= -1 ? 'tc-1' : z < 1 ? '' : z < 2 ? 'th-1' : 'th-2'; }
   function ganClass(wait, avg) { var r = wait / avg; return r < 1 ? '' : r < 2 ? 'gan-1' : r < 3 ? 'gan-2' : r < 4 ? 'gan-3' : 'gan-4'; }
   function devText(d) { return d >= 0 ? 'nhiều hơn trung bình ' + fpct(d) : 'ít hơn trung bình ' + fpct(-d); }
   function lastSeen(n) { return n.lastNo ? 'kỳ #' + pad5(n.lastNo) + ', ' + fdate(n.lastDate) : 'chưa ra trong phạm vi này'; }
@@ -243,7 +245,7 @@
       if (latest.indexOf(n.n) >= 0) { cls += ' latest'; tip += '<br>Có trong kết quả kỳ gần nhất'; }
       if (picked.indexOf(n.n) >= 0) { cls += ' picked'; tip += '<br>Đã có trong vé ở mục Kiểm tra vé'; }
       return '<div class="' + cls + '" tabindex="0" data-n="' + n.n + '" data-tip="' + esc(tip) + '"><span class="c-n">' + pad2(n.n) +
-        '</span><span class="c-v">' + val + '</span>' + (metric === 'pair' ? '<span class="c-t">' + fi(n.count) + ' lần về</span>' : '') + '</div>';
+        '</span><span class="c-v">' + val + '</span>' + (metric === 'pair' ? '<span class="c-t ' + totCls(n.z) + '">' + fi(n.count) + ' về</span>' : '') + '</div>';
     });
     return '<div class="slip" data-metric="' + metric + '">' + cells.join('') + '</div>';
   }
@@ -401,7 +403,9 @@
       slipHtml('pair') + slipLegend('pair') +
       '<p class="note pair-status">Vé đang có ' + inT.length + '/' + game().nMain + ' số.' +
       (left > 0 ? ' Chọn thêm ' + left + ' số, khi đủ sẽ tự chuyển sang Kiểm tra vé.' : ' Đã đủ số, bấm nút để sang Kiểm tra vé.') + '</p>' +
-      '<div class="legend"><span><span class="sw picked-sw"></span>Đã có trong vé ở mục Kiểm tra vé</span></div></section>';
+      '<div class="legend"><span><span class="sw picked-sw"></span>Đã có trong vé ở mục Kiểm tra vé</span></div>' +
+      '<div class="legend"><span><span class="tot-sw th-2"></span>Số về nhiều hơn trung bình hẳn</span><span><span class="tot-sw th-1"></span>Số về nhiều hơn trung bình</span>' +
+      '<span><span class="tot-sw tc-1"></span>Số về ít hơn trung bình</span><span><span class="tot-sw tc-2"></span>Số về ít hơn trung bình hẳn</span></div></section>';
     h += '<div class="grid-2 block"><section class="panel">' + head('15 cặp ra cùng nhau nhiều nhất') + pairRows(p.top) + '</section>' +
       '<section class="panel">' + head('15 cặp ra cùng nhau ít nhất') + pairRows(p.bottom) + '</section></div>';
     h += '<section class="panel block">' + head('Kết luận về cặp số') + checkLine(testOf('pairs')).replace('margin-top:14px', 'margin-top:0') + '</section>';
