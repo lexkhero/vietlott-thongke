@@ -386,6 +386,9 @@
     var st = S.stats, p = st.pairs, eP = p.note.expected;
     if (!S.pairOf || S.pairOf > st.game.max) S.pairOf = (S.draws && S.draws[0] ? S.draws[0].main[0] : 1);
     var inT = pickedNums(), has = inT.indexOf(S.pairOf) >= 0, left = game().nMain - inT.length;
+    var pinfo = st.numbers.filter(function (n) { return n.n === S.pairOf; })[0];
+    var pfact = pinfo ? '<p class="note pair-fact">Số ' + pad2(S.pairOf) + ' đã về <b>' + fi(pinfo.count) + '</b> lần trong ' + fi(st.window.draws) + ' kỳ' +
+      (pinfo.lastNo ? ', lần gần nhất ở kỳ #' + pad5(pinfo.lastNo) + ' (' + fdate(pinfo.lastDate) + ')' : '') + '.</p>' : '';
     var pairRows = function (arr) {
       return rankList(arr.map(function (x) {
         return { label: '<span class="balls">' + ball(x.a, 'xs') + ball(x.b, 'xs') + '</span>', value: x.count, text: fi(x.count) + ' lần',
@@ -395,7 +398,7 @@
     var h = '<section class="panel">' + head('Số ' + pad2(S.pairOf) + ' hay ra cùng số nào?', 'Bấm vào một ô để chọn số khác. Màu đỏ: ra cùng nhau nhiều hơn trung bình, màu xanh: ít hơn.',
       (has ? '<button type="button" class="btn btn-light btn-sm" id="pair-use" disabled>Số ' + pad2(S.pairOf) + ' đã có trong vé</button>'
         : '<button type="button" class="btn btn-light btn-sm" id="pair-use">Thêm số ' + pad2(S.pairOf) + ' vào vé</button>')) +
-      slipHtml('pair') + slipLegend('pair') +
+      pfact + slipHtml('pair') + slipLegend('pair') +
       '<p class="note pair-status">Vé đang có ' + inT.length + '/' + game().nMain + ' số.' +
       (left > 0 ? ' Chọn thêm ' + left + ' số, khi đủ sẽ tự chuyển sang Kiểm tra vé.' : ' Đã đủ số, bấm nút để sang Kiểm tra vé.') + '</p>' +
       '<div class="legend"><span><span class="sw picked-sw"></span>Đã có trong vé ở mục Kiểm tra vé</span></div></section>';
