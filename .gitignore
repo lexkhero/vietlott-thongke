@@ -1,0 +1,4 @@
+# Chỉ đưa thư mục docs/ (bản web đã dựng) lên GitHub. Mọi thứ khác ở lại trên máy.
+/*
+!/docs/
+!/.gitignore
