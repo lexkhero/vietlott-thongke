@@ -326,7 +326,7 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   /* ô nhập từ 16px trở lên để iPhone không tự phóng to trang khi chạm vào */
   select, .input { font-size: 16px; min-height: 42px; }
   .btn { min-height: 42px; }
-  .btn-sm { min-height: 40px; padding: 6px 12px; }
+  .btn-sm { min-height: 30px; padding: 0px 8px; }
   .seg button { padding: 9px 14px; }
   .sidebar { padding: 12px 16px 0; }
   /* thanh mục cuộn ngang: ẩn thanh cuộn, mục đang xem được kéo vào giữa */
@@ -412,7 +412,7 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   table.data:not(.hist), table.data:not(.hist) tbody { display: block; width: 100%; }
   table.data:not(.hist) thead { display: none; }
   table.data:not(.hist) tbody tr {
-    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px;
+    display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px 12px;
     padding: 12px; margin-bottom: 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel);
   }
   table.data:not(.hist) tbody tr:last-child { margin-bottom: 0; }
@@ -421,6 +421,7 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   table.data:not(.hist) td:first-child { grid-column: 1 / -1; font-weight: 650; }
   table.data:not(.hist) td:first-child::before, table.data:not(.hist) td[data-label=""]::before { display: none; }
   table.data:not(.hist) td[colspan] { grid-column: 1 / -1; }
+  table.data:not(.hist) td.c-res { grid-column: 1 / -1; }
   table.data:not(.hist) td:empty { display: none; }
   table.data:not(.hist) tbody tr:hover td { background: transparent; }
 }
@@ -466,6 +467,6 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 }
 /* máy tính bảng / điện thoại nằm ngang: thẻ rộng hơn thì xếp nhiều cột hơn */
 @media (min-width: 561px) and (max-width: 860px) {
-  table.data:not(.hist) tbody tr { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+  table.data:not(.hist) tbody tr { grid-template-columns: repeat(4, minmax(150px, 1fr)); }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }

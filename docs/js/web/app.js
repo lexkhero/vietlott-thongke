@@ -10,14 +10,10 @@
   ];
   var SECTIONS = [
     { id: 'tong-quan', label: 'Tổng quan', scope: true, sub: 'Kết quả mới nhất, kết luận về độ ngẫu nhiên và tần suất của từng số.' },
-    { id: 'bang-so', label: 'Bảng số', scope: true, sub: 'Số lần ra và số kỳ chưa ra của từng số, xếp như trên phiếu dự thưởng.' },
-    { id: 'so-gan', label: 'Số gan', scope: true, sub: 'Các số lâu chưa ra và quy luật khoảng cách giữa hai lần ra của một số.' },
     { id: 'cap-so', label: 'Cặp số', scope: true, sub: 'Chọn số cho vé của bạn từ bảng bên dưới: xem số nào hay ra cùng số nào, các cặp trong vé và những kỳ bộ số đó từng trúng giải.' },
-    { id: 'ngau-nhien', label: 'Độ ngẫu nhiên', scope: true, sub: 'Các phép kiểm tra xem kết quả quay có đúng là ngẫu nhiên hay không.' },
     { id: 'goi-y', label: 'Gợi ý bộ số', scope: true, sub: 'Sinh bộ số theo tiêu chí bạn chọn. Mọi bộ số đều có cùng cơ hội trúng.' },
     { id: 'the-le', label: 'Thể lệ & cách chơi', scope: true, sub: 'Cách chơi, điều kiện trúng từng giải và xác suất trúng của từng loại vé.' },
-    { id: 'lich-su', label: 'Lịch sử kết quả', scope: false, sub: 'Kết quả 60 kỳ quay gần nhất.' },
-    { id: 'phuong-phap', label: 'Phương pháp, kiểm chứng', scope: false, sub: 'Dữ liệu lấy từ đâu, đã được kiểm chứng như thế nào, và các phương pháp thống kê được dùng.' }
+    { id: 'lich-su', label: 'Lịch sử kết quả', scope: false, sub: 'Kết quả 60 kỳ quay gần nhất.' }
   ];
   var JACKPOT_TIERS = { '655': [0, 1], '645': [0], '535': [0] };
   var S = {
@@ -300,14 +296,13 @@
     var h = S.draws && S.draws[0] ? boardHtml(S.draws[0]) : '';
     h += '<div class="grid-2 block" style="margin-top:20px">' +
       '<section class="panel"><div class="verdict"><span class="v-icon ' + v.level + '" aria-hidden="true">' + LEVEL[v.level].icon + '</span><div>' +
-      '<h2>' + esc(LEVEL[v.level].title) + '</h2><p class="sub" style="margin-top:6px">' + esc(v.text) + '</p>' +
-      '<p class="small" style="margin-top:10px"><a href="#ngau-nhien">Xem chi tiết ' + v.total + ' phép kiểm tra</a></p></div></div></section>' +
+      '<h2>' + esc(LEVEL[v.level].title) + '</h2><p class="sub" style="margin-top:6px">' + esc(v.text) + '</p></div></div></section>' +
       '<section class="panel"><h2>Dữ liệu đang dùng</h2><div class="facts" style="margin-top:12px">' +
       '<div class="fact"><span class="k">Số kỳ trong phạm vi</span><span class="v">' + fi(w.draws) + ' kỳ</span></div>' +
       '<div class="fact"><span class="k">Từ ngày đến ngày</span><span class="v">' + fdate(w.from) + ' – ' + fdate(w.to) + '</span></div>' +
       '<div class="fact"><span class="k">Đối chiếu nguồn độc lập</span><span class="v">' + esc(crossText(g.code)) + '</span></div>' +
       '<div class="fact"><span class="k">Cơ hội trúng giải cao nhất</span><span class="v">1 / ' + fi(st.game.jackpotOdds) + '</span></div>' +
-      '</div><p class="small" style="margin-top:10px"><a href="#phuong-phap">Dữ liệu được kiểm chứng thế nào?</a></p></section></div>';
+      '</div></section></div>';
     h += '<section class="panel block">' + head('Bảng số', 'Mỗi ô là một số, xếp như trên phiếu dự thưởng. Đỏ là ra nhiều hơn trung bình, xanh là ra ít hơn. Rê chuột vào ô để xem chi tiết.') +
       slipHtml('count') + slipLegend('count') + '</section>';
     var byCount = st.numbers.slice().sort(function (a, b) { return b.count - a.count || a.n - b.n; });
@@ -322,66 +317,6 @@
       list('Ra ít nhất', byCount.slice(-5).reverse(), function (n) { return fi(n.count) + ' lần <span class="muted">(' + devText(n.devPct) + ')</span>'; }) +
       list('Lâu chưa ra nhất', byWait.slice(0, 5), function (n) { return fi(n.wait) + ' kỳ chưa ra'; }) + '</div>';
     h += '<p class="note block">Đây là số liệu của các kỳ đã quay. Mỗi kỳ quay độc lập với kỳ trước, nên số ra nhiều hay lâu chưa ra không làm thay đổi cơ hội ở kỳ sau.</p>';
-    return h;
-  }
-
-  /* ============================================================ bảng số */
-  function renderNumbers() {
-    var st = S.stats, g = game();
-    var seg = '<div class="seg" role="group" aria-label="Chỉ số hiển thị">' +
-      '<button type="button" data-metric="count" aria-pressed="' + (S.gridMetric === 'count') + '">Số lần ra</button>' +
-      '<button type="button" data-metric="wait" aria-pressed="' + (S.gridMetric === 'wait') + '">Số kỳ chưa ra</button></div>';
-    var h = '<section class="panel">' + head(S.gridMetric === 'wait' ? 'Số kỳ chưa ra của từng số' : 'Số lần ra của từng số', S.gridMetric === 'wait'
-      ? 'Ô càng đậm là số càng lâu chưa ra. Trung bình một số cách ' + fd(1 / st.game.p0) + ' kỳ thì ra lại.'
-      : 'Số lần mỗi số đã ra trong ' + fi(st.window.draws) + ' kỳ; trung bình ' + fd(st.numbers[0].expected) + ' lần mỗi số.', seg) +
-      slipHtml(S.gridMetric) + slipLegend(S.gridMetric) + '</section>';
-    var cols = [
-      { h: 'Số', v: function (n) { return n.n; }, f: function (n) { return ball(n.n, 'xs'); } },
-      { h: 'Số lần ra', r: 1, v: function (n) { return n.count; }, f: function (n) { return fi(n.count); } },
-      { h: 'So với trung bình', r: 1, v: function (n) { return n.devPct; }, f: function (n) { return '<span class="' + (n.devPct >= 0 ? 'up' : 'down') + '">' + (n.devPct >= 0 ? '+' : '−') + fpct(Math.abs(n.devPct)) + '</span>'; } },
-      { h: 'Số kỳ chưa ra', r: 1, v: function (n) { return n.wait; }, f: function (n) { return fi(n.wait); } },
-      { h: 'Vắng lâu nhất', r: 1, v: function (n) { return n.maxWait; }, f: function (n) { return fi(n.maxWait) + ' kỳ'; } },
-      { h: 'Khoảng cách trung bình', r: 1, v: function (n) { return n.avgGap || 0; }, f: function (n) { return n.avgGap ? fd(n.avgGap) + ' kỳ' : '–'; } },
-      { h: 'Lần ra gần nhất', v: function (n) { return n.lastNo || 0; }, f: function (n) { return n.lastNo ? '#' + pad5(n.lastNo) + ' <span class="muted">' + fdate(n.lastDate) + '</span>' : '–'; } }
-    ];
-    if (g.hasBonus) {
-      var B = g.bonusMax || g.max;
-      cols.push({ h: 'Là số đặc biệt', r: 1, v: function (n) { return n.bonus; }, f: function (n) { return n.n <= B ? fi(n.bonus) : '–'; } });
-    }
-    h += '<section class="panel block">' + head('Chi tiết từng số', 'Bấm vào tiêu đề cột để sắp xếp (trên điện thoại: chọn ở ô "Sắp xếp theo").') +
-      '<div class="table-wrap tall" data-table="numbers">' + sortTable('numbers', cols, st.numbers, { k: 1, dir: -1 }) + '</div></section>';
-    S._tables = { numbers: { cols: cols, rows: st.numbers } };
-    return h;
-  }
-
-  /* ============================================================ số gan */
-  function testOf(key) { return (S.stats.tests || []).filter(function (t) { return t.key === key; })[0]; }
-  function checkLine(t) {
-    if (!t) return '';
-    return '<div class="verdict" style="margin-top:14px"><span class="v-icon sm ' + t.level + '" aria-hidden="true">' + LEVEL[t.level].icon + '</span>' +
-      '<p class="sub">' + esc(t.summary) + '</p></div>';
-  }
-  function renderGan() {
-    var st = S.stats, gi = st.gapInfo, avg = 1 / st.game.p0, rec = gi.record;
-    var byWait = st.numbers.slice().sort(function (a, b) { return b.wait - a.wait || a.n - b.n; }).slice(0, 15);
-    var rows = byWait.map(function (n) {
-      return { label: ball(n.n, 'sm'), value: n.wait, text: fi(n.wait) + ' kỳ',
-        tip: '<b>Số ' + pad2(n.n) + '</b><br>Đã ' + fi(n.wait) + ' kỳ chưa ra<br>Lần ra gần nhất: ' + lastSeen(n) + '<br>Vắng lâu nhất từ trước: ' + fi(n.maxWait) + ' kỳ' };
-    });
-    var h = '<div class="grid-2">' +
-      '<section class="panel">' + head('Đang vắng lâu nhất', '15 số lâu chưa ra nhất tính đến kỳ #' + pad5(st.window.toNo) + '.') +
-      rankList(rows, { cls: 'gan', ref: avg, refLabel: 'Khoảng cách trung bình giữa hai lần ra: ' + fd(avg) + ' kỳ' }) + '</section>' +
-      '<section class="panel">' + head('Kỷ lục vắng mặt') +
-      '<div class="facts"><div class="fact"><span class="k">Kỷ lục trong phạm vi</span><span class="v">' + fi(rec.length) + ' kỳ (số ' + pad2(rec.n) + ')</span></div>' +
-      '<div class="fact"><span class="k">Thời gian</span><span class="v">' + (rec.current ? fdate(rec.fromDate) + ' – nay' : fdate(rec.fromDate) + ' – ' + fdate(rec.toDate)) + '</span></div>' +
-      '<div class="fact"><span class="k">Đang vắng lâu nhất</span><span class="v">' + fi(gi.current.wait) + ' kỳ (số ' + pad2(gi.current.n) + ')</span></div>' +
-      '<div class="fact"><span class="k">Tỷ lệ thời điểm có số vắng từ ' + fi(gi.current.wait) + ' kỳ trở lên</span><span class="v">' + fpct(gi.current.prob) + '</span></div></div>' +
-      checkLine(testOf('record')) +
-      '<p class="note" style="margin-top:12px">Với nhiều số cùng quay, lúc nào cũng có vài số vắng lâu. Số vắng lâu không vì thế mà dễ ra hơn ở kỳ sau.</p></section></div>';
-    h += '<section class="panel block">' + head('Khoảng cách giữa hai lần ra', 'Số lần gặp mỗi độ dài khoảng cách (tính bằng số kỳ), so với lý thuyết của quay ngẫu nhiên.') +
-      colChart(gi.dist.map(function (d) {
-        return { label: d.label, obs: d.obs, exp: d.exp, tip: '<b>Khoảng cách ' + esc(d.label) + ' kỳ</b><br>Thực tế: ' + fi(d.obs) + ' lần<br>Lý thuyết: ' + fd(d.exp) + ' lần' };
-      }), { title: 'Phân bố khoảng cách giữa hai lần ra' }) + checkLine(testOf('gaps')) + '</section>';
     return h;
   }
 
@@ -437,42 +372,6 @@
       '<span><span class="tot-sw tc-1"></span>Số về ít hơn trung bình</span><span><span class="tot-sw tc-2"></span>Số về ít hơn trung bình hẳn</span></div></section>';
   }
 
-  /* ============================================================ độ ngẫu nhiên */
-  function renderRandomness() {
-    var st = S.stats, v = st.verdict;
-    var h = '<section class="panel"><div class="verdict"><span class="v-icon ' + v.level + '" aria-hidden="true">' + LEVEL[v.level].icon + '</span><div>' +
-      '<h2>' + esc(LEVEL[v.level].title) + '</h2><p class="sub" style="margin-top:6px">' + esc(v.text) + '</p></div></div></section>';
-    h += '<section class="panel block">' + head(v.total + ' phép kiểm tra', 'Mỗi phép trả lời một câu hỏi. Kết luận đã tính đến việc làm nhiều phép kiểm tra cùng lúc.') +
-      '<div class="checks">' + st.tests.map(function (t) {
-        return '<div class="check"><span class="v-icon sm ' + t.level + '" aria-hidden="true">' + LEVEL[t.level].icon + '</span>' +
-          '<div><div class="q">' + esc(t.question) + '</div><div class="s">' + esc(t.summary) + '</div><div class="m">Cách kiểm tra: ' + esc(t.method) + '</div></div>' +
-          badge(t.level, t.levelText) + '</div>';
-      }).join('') + '</div></section>';
-    var k = st.game.nMain;
-    h += '<div class="grid-3 block">' +
-      '<section class="panel">' + head('Số lẻ trong mỗi kỳ') + colChart(st.parityDist.map(function (d) {
-        return { label: d.j + ' lẻ', obs: d.obs, exp: d.exp, tip: '<b>Kỳ có ' + d.j + ' số lẻ, ' + (k - d.j) + ' số chẵn</b><br>Thực tế: ' + fi(d.obs) + ' kỳ<br>Lý thuyết: ' + fd(d.exp) + ' kỳ' };
-      }), { h: 220, cols: 3, title: 'Số lẻ trong mỗi kỳ' }) + '</section>' +
-      '<section class="panel">' + head('Tổng các số trong kỳ') + colChart(st.sumHist.map(function (d) {
-        return { label: String(d.from), obs: d.obs, exp: d.exp, tip: '<b>Tổng từ ' + d.from + ' đến ' + d.to + '</b><br>Thực tế: ' + fi(d.obs) + ' kỳ<br>Lý thuyết: ' + fd(d.exp) + ' kỳ' };
-      }), { h: 220, cols: 3, maxLabels: 6, title: 'Tổng các số trong kỳ' }) + '</section>' +
-      '<section class="panel">' + head('Số trùng với kỳ trước') + colChart(st.repeatDist.filter(function (d) { return d.obs > 0 || d.exp >= 0.5; }).map(function (d) {
-        return { label: d.j + ' số', obs: d.obs, exp: d.exp, tip: '<b>Trùng ' + d.j + ' số với kỳ ngay trước</b><br>Thực tế: ' + fi(d.obs) + ' kỳ<br>Lý thuyết: ' + fd(d.exp) + ' kỳ' };
-      }), { h: 220, cols: 3, title: 'Số trùng với kỳ trước' }) + '</section></div>';
-    if (st.backtest) {
-      var bt = st.backtest;
-      h += '<section class="panel block">' + head('Chọn số theo thống kê có trúng nhiều hơn không?',
-        'Thử lại trên ' + fi(bt.draws) + ' kỳ: mỗi kỳ chỉ dùng kết quả của các kỳ trước đó để chọn ' + k + ' số, rồi so với kết quả thật của kỳ đó.') +
-        '<div class="table-wrap"><table class="data"><thead><tr><th>Cách chọn</th><th class="r">Trúng trung bình mỗi kỳ</th><th class="r">Số kỳ trúng từ 3 số trở lên</th></tr></thead><tbody>' +
-        bt.strategies.map(function (s) {
-          return '<tr><td>' + esc(s.label) + '</td><td class="r">' + fd(s.mean, 2) + ' số</td><td class="r">' + fi(s.atLeast3.obs) + ' kỳ</td></tr>';
-        }).join('') +
-        '<tr><td><b>Chọn ngẫu nhiên (lý thuyết)</b></td><td class="r"><b>' + fd(bt.expectedHits, 2) + ' số</b></td><td class="r"><b>' + fd(bt.strategies[0].atLeast3.exp) + ' kỳ</b></td></tr>' +
-        '</tbody></table></div>' + checkLine(testOf('predict')) + '</section>';
-    }
-    return h;
-  }
-
   /* ============================================================ vé của bạn (gộp vào mục Cặp số) */
   function renderCheck() {
     return '<div id="ck-pairs">' + pairPanelHtml(game(), pickedNums()) + '</div><div id="ck-out" class="block"></div>';
@@ -480,7 +379,7 @@
   function curSp() { return S.ck && S.ck.game === S.game ? S.ck.sp || '' : ''; }
   // Hàng "Vé của bạn": các số đã chọn (bấm để bỏ), số đặc biệt nếu loại vé cần, nút xóa hết
   function ticketRowHtml() {
-    var g = game(), sel = pickedNums(), sp = curSp(), h = '<div class="ticket-row"><span class="ticket-lb">Vé của bạn:</span>';
+    var g = game(), sel = pickedNums(), sp = curSp(), h = '<div class="ticket-row">';
     if (sel.length) h += '<span class="balls">' + sel.map(function (n) { return '<button type="button" class="ball-btn" data-del="' + n + '" title="Bấm để bỏ số ' + pad2(n) + '">' + ball(n, 'sm') + '</button>'; }).join('') + '</span>';
     else h += '<span class="sub small">chưa chọn số nào</span>';
     if (specialPick(g)) {
@@ -560,10 +459,10 @@
         return b + '</span>';
       };
       h += '<section class="panel">' + head('Các kỳ bộ số này trúng giải', rp.winCount + ' lần' + (rp.winCount > rp.best.length ? ', hiển thị ' + rp.best.length + ' lần thưởng cao nhất' : '') + '. Số có màu là số trùng với vé của bạn.') +
-        '<div class="table-wrap tall"><table class="data"><thead><tr><th>Kỳ</th><th>Ngày</th><th>Kết quả kỳ đó</th><th>Trùng</th><th>Giải</th><th class="r">Tiền thưởng</th></tr></thead><tbody>' +
+        '<div class="table-wrap tall"><table class="data"><thead><tr><th>Kỳ</th><th>Ngày</th><th>Trùng</th><th>Giải</th><th class="r">Tiền thưởng</th><th>Kết quả kỳ đó</th></tr></thead><tbody>' +
         rp.best.map(function (w) {
           var needSp = /đặc biệt/.test(r.tiers[w.tier].desc);
-          return '<tr><td>#' + pad5(w.no) + '</td><td>' + fdate(w.date) + '</td><td>' + drawBalls(w) + '</td><td>' + w.m + ' số' + (w.s && needSp ? ' và số đặc biệt' : '') + '</td><td>' + esc(w.name) + '</td><td class="r">' + money(w.prize) + '</td></tr>';
+          return '<tr><td>#' + pad5(w.no) + '</td><td>' + fdate(w.date) + '</td><td>' + w.m + ' số' + (w.s && needSp ? ' và số đặc biệt' : '') + '</td><td>' + esc(w.name) + '</td><td class="r">' + money(w.prize) + '</td><td class="c-res">' + drawBalls(w) + '</td></tr>';
         }).join('') + '</tbody></table></div></section>';
     } else h += '<p class="note">Bộ số này chưa trúng giải nào trong phạm vi kỳ đã chọn.</p>';
     return h;
@@ -613,57 +512,6 @@
       }).join('') + '</tbody></table></div></section>';
   }
 
-  /* ============================================================ phương pháp và kiểm chứng */
-  var REFS = [
-    ['Joe, H. (1993). Tests of uniformity for sets of lotto numbers. Statistics & Probability Letters 16, 181–188.', 'https://ideas.repec.org/a/eee/stapro/v16y1993i3p181-188.html'],
-    ['Genest, C., Lockhart, R. A. & Stephens, M. A. (2002). χ² and the lottery. The Statistician 51(2), 243–257.', 'https://www.sfu.ca/~lockhart/Research/Papers/GenestLockhartStephensJRSSD02.pdf'],
-    ['Spiegelhalter, D. & Pearson, M. Understanding uncertainty: A league table lottery. Plus Magazine (Đại học Cambridge).', 'https://plus.maths.org/content/understanding-uncertainty-league-table-lottery'],
-    ['Haigh, J. (1997). The statistics of the National Lottery. Journal of the Royal Statistical Society, Series A 160(2).', 'https://rss.onlinelibrary.wiley.com/doi/pdf/10.1111/1467-985X.00056'],
-    ['Kiểm định khoảng cách (gap test) theo Knuth, The Art of Computer Programming, tập 2 - tài liệu thư viện NAG.', 'https://www.nag.com/numeric/nl/nagdoc_27/clhtml/g08/g08edc.html'],
-    ['Holm, S. (1979). A simple sequentially rejective multiple test procedure. Scandinavian Journal of Statistics 6, 65–70.', 'https://en.wikipedia.org/wiki/Holm%E2%80%93Bonferroni_method']
-  ];
-  function renderMethod() {
-    var c = S.cross, rows = '';
-    if (c && c.games) {
-      ['655', '645', '535'].forEach(function (code) {
-        var x = c.games[code]; if (!x) return;
-        var extra = [];
-        if (x.mismatches && x.mismatches.length) x.mismatches.forEach(function (m) {
-          extra.push('Kỳ #' + pad5(m.no) + ': ' + (m.toolCorrect === true ? 'nguồn kia ghi sai, đã tra lại vietlott.vn và dữ liệu của tool đúng' : m.toolCorrect === false ? 'dữ liệu của tool khác vietlott.vn, cần cập nhật lại' : 'chưa tra được vietlott.vn'));
-        });
-        if (x.onlyOurs && x.onlyOurs.length) extra.push('Nguồn kia không có ' + x.onlyOurs.join(', ') + '.');
-        rows += '<tr><td>' + esc(x.label) + '</td><td class="r">' + fi(x.compared) + '</td><td class="r">' + fi(x.matched) + '</td><td class="r">' + fi(x.mismatchCount) + '</td>' +
-          '<td>' + (x.toolWrong ? badge('alert', 'Cần xem lại') : badge('ok', 'Chính xác')) + (extra.length ? '<div class="small sub" style="margin-top:4px">' + esc(extra.join(' ')) + '</div>' : '') + '</td></tr>';
-      });
-    }
-    var h = '<section class="panel">' + head('Dữ liệu có chính xác không?',
-      'Kết quả được lấy trực tiếp từ vietlott.vn, sau đó đối chiếu từng kỳ với một bộ dữ liệu độc lập do người khác thu thập (dự án vietlott-data trên GitHub).',
-      '<button type="button" class="btn btn-light btn-sm" id="cross-run">Đối chiếu lại ngay</button>') +
-      (rows ? '<div class="table-wrap"><table class="data"><thead><tr><th>Loại</th><th class="r">Số kỳ đối chiếu</th><th class="r">Khớp</th><th class="r">Lệch</th><th>Kết luận</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
-        '<p class="note" style="margin-top:10px">Đối chiếu lần gần nhất: ' + new Date(c.checkedAt).toLocaleString('vi-VN') + '. Mỗi kỳ được so ngày quay, các số và số đặc biệt; kỳ nào lệch thì tool tự tra lại trên vietlott.vn để biết bên nào đúng. Việc đối chiếu chạy tự động mỗi ngày một lần.</p>'
-        : '<p class="empty">Chưa đối chiếu lần nào. Bấm "Đối chiếu lại ngay".</p>') +
-      '<hr class="divider"><div class="prose"><h3>Các con số được kiểm tra lại thế nào</h3><ul>' +
-      '<li>Mỗi kỳ được kiểm tra: đủ số, không trùng số, nằm trong khoảng cho phép, không thiếu kỳ, ngày quay không lùi.</li>' +
-      '<li>Số lần ra, số kỳ chưa ra, khoảng cách giữa hai lần ra, kỷ lục vắng, số lần ra cùng nhau của từng cặp và số đặc biệt đều được tính lại bằng một cách độc lập (truy vấn trực tiếp cơ sở dữ liệu) và phải khớp tuyệt đối.</li>' +
-      '<li>Xác suất trúng từng giải được so với giá trị tính tay bằng tổ hợp, ví dụ Power 6/55 có 28.989.675 bộ số khác nhau.</li>' +
-      '<li>Bộ kiểm thử chạy bằng lệnh <span class="num">npm test</span> trong thư mục tool.</li></ul></div></section>';
-    var tests = (S.stats && S.stats.tests) || [];
-    h += '<section class="panel block"><div class="prose"><h2>Phương pháp thống kê</h2>' +
-      '<p style="margin-top:8px">Câu hỏi chính là: kết quả quay có giống quay ngẫu nhiên hoàn toàn không? Tool dùng các phương pháp chuẩn trong các nghiên cứu về xổ số, mỗi phương pháp trả lời một câu hỏi:</p><ul>' +
-      tests.map(function (t) { return '<li><b>' + esc(t.question) + '</b> ' + esc(t.method) + '</li>'; }).join('') + '</ul>' +
-      '<h3 style="margin-top:18px">Cách đọc kết luận</h3><ul>' +
-      '<li>' + badge('ok', 'Bình thường') + ' Chênh lệch nằm trong dao động thường gặp của quay ngẫu nhiên.</li>' +
-      '<li>' + badge('watch', 'Cần theo dõi') + ' Chênh lệch lớn, chỉ xảy ra dưới 5 trên 100 lần nếu quay ngẫu nhiên. Chưa đủ để kết luận, cần thêm dữ liệu.</li>' +
-      '<li>' + badge('alert', 'Bất thường') + ' Chênh lệch rất lớn, chỉ xảy ra dưới 1 trên 100 lần nếu quay ngẫu nhiên.</li></ul>' +
-      '<p>Vì làm nhiều phép kiểm tra cùng lúc, kết luận được hiệu chỉnh theo phương pháp Holm để tránh báo động nhầm: nếu chỉ dựa vào may rủi, cứ khoảng 20 phép kiểm tra sẽ có 1 phép trông "lệch". ' +
-      'Mỗi phép kiểm tra đã được thử trên hàng nghìn bộ dữ liệu quay ngẫu nhiên giả lập để chắc chắn tỷ lệ báo nhầm đúng mức.</p>' +
-      '<h3 style="margin-top:18px">Điều thống kê không làm được</h3>' +
-      '<p>Mỗi kỳ quay độc lập với các kỳ trước. Thống kê quá khứ giúp kiểm tra máy quay có công bằng không, nhưng không thể dự đoán số của kỳ sau và không làm tăng cơ hội trúng.</p>' +
-      '<h3 style="margin-top:18px">Tài liệu tham khảo</h3><ol class="ref-list">' +
-      REFS.map(function (r) { return '<li><a href="' + r[1] + '" target="_blank" rel="noopener">' + esc(r[0]) + '</a></li>'; }).join('') + '</ol></div></section>';
-    return h;
-  }
-
   /* ============================================================ thể lệ & cách chơi */
   var RULE_INFO = {
     '655': {
@@ -706,12 +554,11 @@
 
   /* ============================================================ điều phối hiển thị */
   var RENDER = {
-    'tong-quan': renderOverview, 'bang-so': renderNumbers, 'so-gan': renderGan, 'cap-so': renderPairs,
-    'ngau-nhien': renderRandomness, 'goi-y': renderSuggest,
-    'the-le': renderRules, 'lich-su': renderHistory, 'phuong-phap': renderMethod
+    'tong-quan': renderOverview, 'cap-so': renderPairs, 'goi-y': renderSuggest,
+    'the-le': renderRules, 'lich-su': renderHistory
   };
   // Tên mục rút gọn cho màn hình hẹp (để các nút xếp gọn trong ít hàng)
-  var NAV_SHORT = { 'ngau-nhien': 'Ngẫu nhiên', 'goi-y': 'Gợi ý', 'the-le': 'Thể lệ', 'lich-su': 'Lịch sử', 'phuong-phap': 'Phương pháp' };
+  var NAV_SHORT = { 'goi-y': 'Gợi ý', 'the-le': 'Thể lệ', 'lich-su': 'Lịch sử' };
   function navLabel(s) {
     var sh = NAV_SHORT[s.id];
     return sh ? '<span class="lb-full">' + esc(s.label) + '</span><span class="lb-short">' + esc(sh) + '</span>' : esc(s.label);
@@ -794,7 +641,7 @@
   function loadCross() {
     return getJson('/api/crosscheck').done(function (c) {
       S.cross = c && !c.none ? c : null;
-      if (S.stats && (S.section === 'tong-quan' || S.section === 'phuong-phap')) renderSection();
+      if (S.stats && S.section === 'tong-quan') renderSection();
     });
   }
   function flash(type, html) {
@@ -821,16 +668,6 @@
       .on('focusout', '[data-tip]', tipHide)
       .on('touchstart', function (e) { if (!$(e.target).closest('[data-tip]').length) tipHide(); });
     $(window).on('scroll', tipHide).on('hashchange', function () { go(location.hash.slice(1)); });
-    // Xoay màn hình / đổi cỡ cửa sổ: vẽ lại biểu đồ theo chiều rộng mới (bàn phím ảo chỉ đổi chiều cao nên bỏ qua)
-    var rzT, rzW = window.innerWidth;
-    $(window).on('resize', function () {
-      clearTimeout(rzT);
-      rzT = setTimeout(function () {
-        if (Math.abs(window.innerWidth - rzW) < 40) return;
-        rzW = window.innerWidth;
-        if (S.stats && (S.section === 'so-gan' || S.section === 'ngau-nhien')) renderSection();
-      }, 250);
-    });
 
     // Gắn nhãn cột vào từng ô của mọi bảng, để trên điện thoại bảng hiện thành thẻ có nhãn (không phải cuộn ngang)
     function labelTables() {
