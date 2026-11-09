@@ -702,7 +702,7 @@ function checkTicket(code, game, draws, ticket) {
     let prize = toInt(row[3]);
     if (rule.tiers[i].jackpot) prize = Math.round(prize / (toInt(row[2]) + 1)); // chia đều với người cùng trúng
     won += prize;
-    wins.push({ no: d.no, date: d.date, m, s, tier: i, name: tiers[i].name, prize });
+    wins.push({ no: d.no, date: d.date, m, s, tier: i, name: tiers[i].name, prize, main: d.main, bonus: d.bonus || [] });
   }
   const W = draws.length, spent = W * PRICE;
   const best = wins.slice().sort((a, b) => b.prize - a.prize || b.no - a.no).slice(0, 30);

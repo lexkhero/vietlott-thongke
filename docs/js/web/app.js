@@ -12,9 +12,8 @@
     { id: 'tong-quan', label: 'Tổng quan', scope: true, sub: 'Kết quả mới nhất, kết luận về độ ngẫu nhiên và tần suất của từng số.' },
     { id: 'bang-so', label: 'Bảng số', scope: true, sub: 'Số lần ra và số kỳ chưa ra của từng số, xếp như trên phiếu dự thưởng.' },
     { id: 'so-gan', label: 'Số gan', scope: true, sub: 'Các số lâu chưa ra và quy luật khoảng cách giữa hai lần ra của một số.' },
-    { id: 'cap-so', label: 'Cặp số', scope: true, sub: 'Hai số ra cùng nhau trong một kỳ: cặp nào ra nhiều, cặp nào ra ít.' },
+    { id: 'cap-so', label: 'Cặp số', scope: true, sub: 'Chọn số cho vé của bạn từ bảng bên dưới: xem số nào hay ra cùng số nào, các cặp trong vé và những kỳ bộ số đó từng trúng giải.' },
     { id: 'ngau-nhien', label: 'Độ ngẫu nhiên', scope: true, sub: 'Các phép kiểm tra xem kết quả quay có đúng là ngẫu nhiên hay không.' },
-    { id: 'kiem-tra-ve', label: 'Kiểm tra vé', scope: true, sub: 'Chọn số ngay trên bảng để xem xác suất trúng từng giải, các cặp số trong bộ số của bạn, và kết quả nếu bạn đã chơi bộ số đó ở các kỳ trước.' },
     { id: 'goi-y', label: 'Gợi ý bộ số', scope: true, sub: 'Sinh bộ số theo tiêu chí bạn chọn. Mọi bộ số đều có cùng cơ hội trúng.' },
     { id: 'the-le', label: 'Thể lệ & cách chơi', scope: true, sub: 'Cách chơi, điều kiện trúng từng giải và xác suất trúng của từng loại vé.' },
     { id: 'lich-su', label: 'Lịch sử kết quả', scope: false, sub: 'Kết quả 60 kỳ quay gần nhất.' },
@@ -207,7 +206,7 @@
   function lastSeen(n) { return n.lastNo ? 'kỳ #' + pad5(n.lastNo) + ', ' + fdate(n.lastDate) : 'chưa ra trong phạm vi này'; }
 
   // metric: 'count' (số lần ra) | 'wait' (số kỳ chưa ra) | 'pair' (ra cùng số S.pairOf)
-  // Các số đang có trong ô Kiểm tra vé (cùng loại vé đang xem)
+  // Các số đang có trong vé của bạn (cùng loại vé đang xem)
   function pickedNums() {
     var g = game();
     return S.ck && S.ck.game === S.game ? selNums(S.ck.nums, g) : [];
@@ -243,7 +242,7 @@
           '<br>Lần ra gần nhất: ' + lastSeen(n) + '<br>' + (n.wait === 0 ? 'Vừa ra ở kỳ gần nhất' : 'Đã ' + fi(n.wait) + ' kỳ chưa ra');
       }
       if (latest.indexOf(n.n) >= 0) { cls += ' latest'; tip += '<br>Có trong kết quả kỳ gần nhất'; }
-      if (picked.indexOf(n.n) >= 0) { cls += ' picked'; tip += '<br>Đã có trong vé ở mục Kiểm tra vé'; }
+      if (picked.indexOf(n.n) >= 0) { cls += ' picked'; tip += '<br>Đã có trong vé của bạn'; }
       return '<div class="' + cls + '" tabindex="0" data-n="' + n.n + '" data-tip="' + esc(tip) + '"><span class="c-n">' + pad2(n.n) +
         '</span><span class="c-v">' + val + '</span>' + (metric === 'pair' ? '<span class="c-g ' + ganClass(n.wait, avg) + '" title="Số gan: số kỳ chưa ra của số này">' + (n.wait === 0 ? 'vừa ra' : 'gan ' + fi(n.wait) + ' kỳ') + '</span><span class="c-t ' + totCls(n.z) + '">' + fi(n.count) + '</span>' : '') + '</div>';
     });
@@ -387,29 +386,55 @@
   }
 
   /* ============================================================ cặp số */
+  /* ước tính jackpot kỳ sắp tới của hạng i. Vietlott không công bố số này trước kỳ quay nên suy ra từ lịch sử:
+     - kỳ gần nhất đã có người trúng: giá trị quay về mức khởi điểm (trung vị các kỳ ngay sau một kỳ có người trúng)
+     - chưa ai trúng: giá trị kỳ gần nhất + mức tăng trung vị giữa hai kỳ liên tiếp đều chưa ai trúng */
+  function median(a) { a = a.slice().sort(function (x, y) { return x - y; }); return a.length ? a[Math.floor(a.length / 2)] : 0; }
+  function estimateJackpot(i) {
+    var L = S.draws || [], cur = L[0];
+    if (!cur || !cur.prizes || !cur.prizes[i]) return null;
+    var val = function (d) { return d && d.prizes && d.prizes[i] ? toInt(d.prizes[i][3]) : 0; };
+    var won = function (d) { return d && d.prizes && d.prizes[i] ? toInt(d.prizes[i][2]) > 0 : false; };
+    var starts = [], incs = [];
+    for (var k = 0; k < L.length - 1; k++) {
+      if (won(L[k + 1]) && val(L[k])) starts.push(val(L[k]));
+      else if (!won(L[k + 1]) && val(L[k]) > val(L[k + 1]) && val(L[k + 1])) incs.push(val(L[k]) - val(L[k + 1]));
+    }
+    if (won(cur)) return { value: starts.length ? median(starts) : null, reset: true };
+    return { value: val(cur) + median(incs), reset: false };
+  }
+  /* thanh thông tin đầu mục Cặp số: jackpot ước tính + kỳ quay sắp tới */
+  function pairInfoHtml() {
+    var g = game(), d = S.draws && S.draws[0];
+    if (!d) return '';
+    var prizes = d.prizes || [];
+    var items = (JACKPOT_TIERS[g.code] || [0]).filter(function (i) { return prizes[i]; }).map(function (i) {
+      var e = estimateJackpot(i);
+      return '<div class="board-prize"><div class="p-name">' + esc(prizes[i][0]) + ' ước tính kỳ tới</div>' +
+        '<div class="p-val">' + (e && e.value ? '≈ ' + esc(moneyShort(e.value)) : 'Chưa có dữ liệu') + '</div>' +
+        '<div class="p-win">' + (e && e.reset ? 'Kỳ #' + pad5(d.no) + ' đã có người trúng nên quay về mức khởi điểm' : 'Kỳ #' + pad5(d.no) + ' chưa ai trúng, giải tiếp tục tích lũy') + '</div></div>';
+    }).join('');
+    return '<section class="board pair-info" aria-label="Giải thưởng và kỳ quay tiếp theo"><div><div class="board-title"><b>' + esc(g.label) + '</b></div>' +
+      '<div class="board-label" style="font-size:13px">' + esc(nextDrawText(g)) + '</div>' +
+      '<div class="board-label">Số tiền là ước tính từ dữ liệu các kỳ trước; Vietlott chỉ công bố số chính thức khi quay.</div></div>' +
+      '<div class="board-prizes">' + items + '</div></section>';
+  }
   function renderPairs() {
-    var st = S.stats, p = st.pairs, eP = p.note.expected;
+    var st = S.stats;
     if (!S.pairOf || S.pairOf > st.game.max) S.pairOf = (S.draws && S.draws[0] ? S.draws[0].main[0] : 1);
-    var inT = pickedNums(), has = inT.indexOf(S.pairOf) >= 0, left = game().nMain - inT.length;
-    var pairRows = function (arr) {
-      return rankList(arr.map(function (x) {
-        return { label: '<span class="balls">' + ball(x.a, 'xs') + ball(x.b, 'xs') + '</span>', value: x.count, text: fi(x.count) + ' lần',
-          tip: '<b>Số ' + pad2(x.a) + ' và số ' + pad2(x.b) + '</b><br>Ra cùng nhau ' + fi(x.count) + ' lần<br>Trung bình một cặp: ' + fd(eP) + ' lần' };
-      }), { lbl: '58px', ref: eP, max: Math.max(p.top[0].count, eP) * 1.05, refLabel: 'Trung bình một cặp: ' + fd(eP) + ' lần' });
-    };
-    var h = '<section class="panel">' + head('Số ' + pad2(S.pairOf) + ' hay ra cùng số nào?', 'Bấm vào một ô để chọn số khác. Màu đỏ: ra cùng nhau nhiều hơn trung bình, màu xanh: ít hơn.',
-      (has ? '<button type="button" class="btn btn-light btn-sm" id="pair-use" disabled>Số ' + pad2(S.pairOf) + ' đã có trong vé</button>'
-        : '<button type="button" class="btn btn-light btn-sm" id="pair-use">Thêm số ' + pad2(S.pairOf) + ' vào vé</button>')) +
-      slipHtml('pair') + slipLegend('pair') +
-      '<p class="note pair-status">Vé đang có ' + inT.length + '/' + game().nMain + ' số.' +
-      (left > 0 ? ' Chọn thêm ' + left + ' số, khi đủ sẽ tự chuyển sang Kiểm tra vé.' : ' Đã đủ số, bấm nút để sang Kiểm tra vé.') + '</p>' +
-      '<div class="legend"><span><span class="sw picked-sw"></span>Đã có trong vé ở mục Kiểm tra vé</span></div>' +
+    return pairInfoHtml() + '<div id="pair-box" class="block">' + pairBoxHtml() + '</div>' + renderCheck();
+  }
+  // Bảng "số X hay ra cùng số nào" (vẽ lại riêng khi đổi số đang xem hoặc khi vé thay đổi)
+  function pairBoxHtml() {
+    var inT = pickedNums(), has = inT.indexOf(S.pairOf) >= 0, need = game().nMain, left = need - inT.length, full = left <= 0;
+    var remain = '<span class="pair-left' + (full ? ' done' : '') + '">' + (full ? 'Đã đủ ' + need + '/' + need + ' số' : 'Còn thiếu ' + left + ' số (' + inT.length + '/' + need + ')') + '</span>';
+    return '<section class="panel">' + head('Số ' + pad2(S.pairOf) + ' hay ra cùng số nào?', 'Bấm vào một ô để chọn số khác. Màu đỏ: ra cùng nhau nhiều hơn trung bình, màu xanh: ít hơn.',
+      '<div class="pair-actions">' + remain + (has ? '<button type="button" class="btn btn-light btn-sm" id="pair-use" disabled>Số ' + pad2(S.pairOf) + ' đã có trong vé</button>'
+        : '<button type="button" class="btn btn-light btn-sm" id="pair-use"' + (full ? ' disabled' : '') + '>Thêm số ' + pad2(S.pairOf) + ' vào vé</button>') + '</div>') +
+      ticketRowHtml() + slipHtml('pair') + slipLegend('pair') +
+      '<div class="legend"><span><span class="sw picked-sw"></span>Đã có trong vé của bạn</span></div>' +
       '<div class="legend"><span><span class="tot-sw th-2"></span>Số về nhiều hơn trung bình hẳn</span><span><span class="tot-sw th-1"></span>Số về nhiều hơn trung bình</span>' +
       '<span><span class="tot-sw tc-1"></span>Số về ít hơn trung bình</span><span><span class="tot-sw tc-2"></span>Số về ít hơn trung bình hẳn</span></div></section>';
-    h += '<div class="grid-2 block"><section class="panel">' + head('15 cặp ra cùng nhau nhiều nhất') + pairRows(p.top) + '</section>' +
-      '<section class="panel">' + head('15 cặp ra cùng nhau ít nhất') + pairRows(p.bottom) + '</section></div>';
-    h += '<section class="panel block">' + head('Kết luận về cặp số') + checkLine(testOf('pairs')).replace('margin-top:14px', 'margin-top:0') + '</section>';
-    return h;
   }
 
   /* ============================================================ độ ngẫu nhiên */
@@ -448,21 +473,23 @@
     return h;
   }
 
-  /* ============================================================ kiểm tra vé */
+  /* ============================================================ vé của bạn (gộp vào mục Cặp số) */
   function renderCheck() {
-    var g = game(), keep = S.ck && S.ck.game === S.game ? S.ck : { nums: '', sp: '' }, ex = [];
-    for (var i = 0; i < g.nMain; i++) ex.push(pad2(Math.round(((i + 0.5) * g.max) / g.nMain)));
-    var spOpts = '<option value="">Chọn</option>';
-    for (var s = 1; s <= g.bonusMax; s++) spOpts += '<option value="' + s + '"' + (String(keep.sp) === String(s) ? ' selected' : '') + '>' + pad2(s) + '</option>';
-    var sel = selNums(keep.nums, g);
-    var h = '<section class="panel">' + head('Chọn số của bạn', 'Chạm vào số để chọn, chạm lần nữa để bỏ chọn. Cũng có thể gõ số vào ô bên dưới.') +
-      '<div id="ck-pick">' + pickHtml(g, sel) + '</div>' + msgBoxHtml(g) + '<hr class="divider"><form class="form-row" id="ck-form" autocomplete="off">' +
-      '<label class="field" style="flex:1 1 320px"><span>' + g.nMain + ' số của bạn (từ 1 đến ' + g.max + ')</span>' +
-      '<input class="input num" id="ck-nums" inputmode="numeric" autocomplete="off" placeholder="Ví dụ: ' + ex.join(' ') + '" value="' + esc(keep.nums) + '"></label>' +
-      (specialPick(g) ? '<label class="field"><span>Số đặc biệt (1–' + g.bonusMax + ')</span><select id="ck-sp">' + spOpts + '</select></label>' : '') +
-      '<div class="field"><span>&nbsp;</span><div style="display:flex;gap:8px"><button class="btn" type="submit">Kiểm tra</button>' +
-      '<button class="btn btn-light" type="button" id="ck-rand">Chọn ngẫu nhiên</button></div></div></form></section><div id="ck-pairs">' + pairPanelHtml(g, sel) + '</div><div id="ck-out" class="block"></div>';
-    return h;
+    return '<div id="ck-pairs">' + pairPanelHtml(game(), pickedNums()) + '</div><div id="ck-out" class="block"></div>';
+  }
+  function curSp() { return S.ck && S.ck.game === S.game ? S.ck.sp || '' : ''; }
+  // Hàng "Vé của bạn": các số đã chọn (bấm để bỏ), số đặc biệt nếu loại vé cần, nút xóa hết
+  function ticketRowHtml() {
+    var g = game(), sel = pickedNums(), sp = curSp(), h = '<div class="ticket-row"><span class="ticket-lb">Vé của bạn:</span>';
+    if (sel.length) h += '<span class="balls">' + sel.map(function (n) { return '<button type="button" class="ball-btn" data-del="' + n + '" title="Bấm để bỏ số ' + pad2(n) + '">' + ball(n, 'sm') + '</button>'; }).join('') + '</span>';
+    else h += '<span class="sub small">chưa chọn số nào</span>';
+    if (specialPick(g)) {
+      h += '<label class="field inline"><span>Số đặc biệt</span><select id="ck-sp"><option value="">Chọn</option>';
+      for (var s = 1; s <= g.bonusMax; s++) h += '<option value="' + s + '"' + (String(sp) === String(s) ? ' selected' : '') + '>' + pad2(s) + '</option>';
+      h += '</select></label>';
+    }
+    if (sel.length || sp) h += '<button type="button" class="btn btn-light btn-sm" id="ck-clear">Xóa hết</button>';
+    return h + '</div>';
   }
   // Các số đã chọn (đủ 2 chữ số, trong khoảng cho phép, không trùng) từ chuỗi trong ô nhập
   function selNums(str, g) {
@@ -472,16 +499,6 @@
       if (v >= 1 && v <= g.max && out.indexOf(v) < 0) out.push(v);
     }
     return out;
-  }
-  // Bảng chọn số: chạm để chọn / bỏ chọn, đủ số thì các ô còn lại mờ đi
-  function pickHtml(g, sel) {
-    var full = sel.length >= g.nMain, h = '<div class="slip pick">', n, on;
-    for (n = 1; n <= g.max; n++) {
-      on = sel.indexOf(n) >= 0;
-      h += '<button type="button" class="cell pick-cell' + (on ? ' on' : full ? ' dim' : '') + '" data-n="' + n + '" aria-pressed="' + on + '"><span class="c-n">' + pad2(n) + '</span></button>';
-    }
-    return h + '</div><div class="pick-count"><span>Đã chọn <b>' + sel.length + '/' + g.nMain + '</b> số' + (sel.length ? ': ' + sel.map(pad2).join(' ') : '') + '</span>' +
-      (sel.length ? '<button type="button" class="btn btn-light btn-sm" id="ck-clear">Xóa hết</button>' : '') + '</div>';
   }
   // Thống kê các cặp trong bộ số đang chọn: mỗi cặp đã ra cùng nhau bao nhiêu lần
   function pairPanelHtml(g, sel) {
@@ -503,117 +520,52 @@
       }), { lbl: '58px', ref: eP, max: Math.max(rows[0].count, eP) * 1.05, refLabel: 'Trung bình một cặp: ' + fd(eP) + ' lần' }) +
       '<p class="note" style="margin-top:12px">Đây chỉ là số liệu quá khứ. Bộ số gồm các cặp hay ra cùng nhau cũng không có cơ hội trúng cao hơn bộ số khác.</p></section>';
   }
-  // Tin nhắn gửi tổng đài: mẫu lưu theo từng loại vé, dùng {loai} {so} {db}
-  function tplKey(g) { return 'vl_tpl_' + g.code; }
-  function defTpl(g) { return specialPick(g) ? '{loai} {so} DB {db}' : '{loai} {so}'; }
-  function getTpl(g) { var v = null; try { v = localStorage.getItem(tplKey(g)); } catch (e) {} return v || defTpl(g); }
-  function msgBoxHtml(g) {
-    return '<div class="msg-box"><label class="field"><span>Tin nhắn gửi tổng đài</span>' +
-      '<textarea class="input" id="ck-msg-text" rows="2" readonly placeholder="Chọn đủ số để tạo tin nhắn"></textarea></label>' +
-      '<button type="button" class="btn" id="ck-copy" disabled>Sao chép tin nhắn</button></div>' +
-      '<details class="msg-tpl"><summary>Đổi mẫu tin nhắn</summary>' +
-      '<input class="input" id="ck-tpl" value="' + esc(getTpl(g)) + '" autocomplete="off">' +
-      '<p class="note">Dùng {loai} cho tên loại vé, {so} cho các số, {db} cho số đặc biệt. Ví dụ: ' + esc(defTpl(g)) +
-      '. <a href="#" id="ck-tpl-reset">Khôi phục mẫu mặc định</a></p></details>';
-  }
-  function updateMsg() {
-    var g = game(), nums = $('#ck-nums').val() || '', sp = $('#ck-sp').val() || '', sel = selNums(nums, g);
-    var ok = sel.length === g.nMain && (!specialPick(g) || sp), txt = '';
-    if (ok) {
-      txt = ($('#ck-tpl').val() || defTpl(g)).split('{loai}').join(g.label).split('{so}').join(sel.map(pad2).join(' '))
-        .split('{db}').join(sp ? pad2(+sp) : '');
-    }
-    $('#ck-msg-text').val(txt);
-    $('#ck-copy').prop('disabled', !ok).text('Sao chép tin nhắn');
-  }
-  // Vẽ lại bảng chọn số và phần cặp số theo nội dung ô nhập
-  function syncPick() {
-    var g = game(), sel = selNums($('#ck-nums').val(), g);
-    $('#ck-pick').html(pickHtml(g, sel));
-    $('#ck-pairs').html(pairPanelHtml(g, sel));
-    updateMsg();
+  // Cập nhật vé: vẽ lại bảng cặp số, các cặp trong vé rồi tự kiểm tra
+  function setTicket(nums, sp) {
+    nums.sort(function (a, b) { return a - b; });
+    S.ck = { game: S.game, nums: nums.map(pad2).join(' '), sp: sp == null ? curSp() : sp };
+    $('#pair-box').html(pairBoxHtml());
+    $('#ck-pairs').html(pairPanelHtml(game(), nums));
+    autoCheck();
   }
   // Tự kiểm tra khi đã chọn đủ số (và số đặc biệt nếu loại này cần); chưa đủ thì nhắc chọn thêm
   function autoCheck() {
-    var g = game(), nums = $('#ck-nums').val() || '', sp = $('#ck-sp').val() || '', sel = selNums(nums, g), hint = '';
-    S.ck = { game: S.game, nums: nums, sp: sp };
-    updateMsg();
-    if (sel.length === g.nMain && String(nums).replace(/\D/g, '').length === g.nMain * 2 && (!specialPick(g) || sp)) { runCheck(); return; }
-    if (sel.length && sel.length < g.nMain) hint = 'Đã chọn ' + sel.length + '/' + g.nMain + ' số. Chọn thêm ' + (g.nMain - sel.length) + ' số để xem kết quả.';
-    else if (sel.length === g.nMain && specialPick(g) && !sp) hint = 'Chọn thêm số đặc biệt (từ 1 đến ' + g.bonusMax + ') để xem kết quả.';
+    var g = game(), sel = pickedNums(), sp = curSp(), hint = '';
+    if (sel.length === g.nMain && (!specialPick(g) || sp)) { runCheck(); return; }
+    if (sel.length && sel.length < g.nMain) hint = 'Đã chọn ' + sel.length + '/' + g.nMain + ' số. Chọn thêm ' + (g.nMain - sel.length) + ' số để xem các kỳ bộ số trúng giải.';
+    else if (sel.length === g.nMain && specialPick(g) && !sp) hint = 'Chọn thêm số đặc biệt (từ 1 đến ' + g.bonusMax + ') để xem các kỳ bộ số trúng giải.';
     $('#ck-out').html(hint ? '<div class="alert info">' + esc(hint) + '</div>' : '');
   }
-  function fmtNums(raw, max) {
-    var d = String(raw == null ? '' : raw).replace(/\D/g, '').slice(0, max * 2);
-    var parts = d.match(/.{1,2}/g);
-    return parts ? parts.join(' ') : '';
-  }
-  function caretAfterDigits(val, n) {
-    var c = 0, i;
-    if (n <= 0) return 0;
-    for (i = 0; i < val.length; i++) {
-      if (/\d/.test(val.charAt(i))) { c++; if (c === n) return i + 1; }
-    }
-    return val.length;
-  }
-  function numsProblem(g, nums) {
-    var d = String(nums || '').replace(/\D/g, ''), seen = {}, i, v;
-    if (d.length !== g.nMain * 2) return 'Cần nhập đủ ' + g.nMain + ' số, mỗi số gồm 2 chữ số. Hiện có ' + Math.floor(d.length / 2) + ' số.';
-    for (i = 0; i < d.length; i += 2) {
-      v = +d.substr(i, 2);
-      if (v < 1 || v > g.max) return 'Số ' + pad2(v) + ' không hợp lệ, mỗi số phải từ 1 đến ' + g.max + '.';
-      if (seen[v]) return 'Số ' + pad2(v) + ' bị nhập trùng, mỗi số chỉ nhập một lần.';
-      seen[v] = true;
-    }
-    return '';
-  }
   function runCheck() {
-    var g = game(), nums = $.trim($('#ck-nums').val() || ''), sp = $('#ck-sp').val() || '', code = S.game;
-    S.ck = { game: code, nums: nums, sp: sp };
-    var problem = numsProblem(g, nums);
-    if (problem) { $('#ck-out').html('<div class="alert info">' + esc(problem) + '</div>'); return; }
-    if (specialPick(g) && !sp) { $('#ck-out').html('<div class="alert info">Chọn thêm số đặc biệt (từ 1 đến ' + g.bonusMax + ') rồi bấm Kiểm tra.</div>'); $('#ck-sp').trigger('focus'); return; }
+    var code = S.game, sel = pickedNums(), sp = curSp(), nums = sel.map(pad2).join(' ');
     $('#ck-out').addClass('loading');
     getJson('/api/check?game=' + code + '&last=' + S.last + '&numbers=' + encodeURIComponent(nums) + (sp ? '&special=' + sp : ''))
-      .done(function (r) { if (S.game === code && S.section === 'kiem-tra-ve') $('#ck-out').html(checkResultHtml(r)); })
+      .done(function (r) { if (S.game === code && S.section === 'cap-so' && nums === pickedNums().map(pad2).join(' ')) $('#ck-out').html(checkResultHtml(r)); })
       .fail(function (m) { $('#ck-out').html('<div class="alert error">' + esc(m) + '</div>'); })
       .always(function () { $('#ck-out').removeClass('loading'); });
   }
+  // Chỉ còn danh sách các kỳ bộ số trúng giải (kèm các số đã quay)
   function checkResultHtml(r) {
-    var g = r.game, rp = r.replay, top = r.tiers[0];
-    var h = '<section class="panel"><div style="display:flex;flex-wrap:wrap;align-items:center;gap:16px">' + ballsHtml(r.ticket.numbers, r.ticket.special ? [r.ticket.special] : null) +
-      '<span class="sub small">Tổng ' + r.sum + ', ' + r.odd + ' số lẻ và ' + (g.nMain - r.odd) + ' số chẵn</span></div>' +
-      '<div class="grid-2" style="margin-top:16px"><div class="facts">' +
-      '<div class="fact"><span class="k">Trúng ' + esc(top.name) + '</span><span class="v">1 / ' + fi(top.oneIn) + '</span></div>' +
-      '<div class="fact"><span class="k">Trúng ít nhất một giải</span><span class="v">' + fprob(r.anyPrize.p) + ' (khoảng 1 trong ' + fd(r.anyPrize.oneIn, 0) + ' vé)</span></div>' +
-      '<div class="fact"><span class="k">Tiền thưởng trung bình nhận lại</span><span class="v">' + money(r.ev) + ' trên mỗi vé ' + money(g.price) + '</span></div></div>' +
-      '<div class="facts"><div class="fact"><span class="k">Nếu đã chơi bộ này ' + fi(rp.draws) + ' kỳ</span><span class="v">tốn ' + money(rp.spent) + '</span></div>' +
-      '<div class="fact"><span class="k">Tiền thưởng nhận được</span><span class="v">' + money(rp.won) + '</span></div>' +
-      '<div class="fact"><span class="k">Lãi / lỗ</span><span class="v ' + (rp.net < 0 ? 'up' : 'down') + '">' + (rp.net > 0 ? '+' : rp.net < 0 ? '−' : '') + money(Math.abs(rp.net)) + '</span></div></div></div>' +
-      '<p class="note" style="margin-top:14px">Mọi bộ số ' + esc(g.label) + ' đều có đúng các xác suất này: các số được quay ngẫu nhiên và độc lập, nên chọn số nào cũng như nhau. ' +
-      'Tiền thưởng trung bình tính theo giá trị giải kỳ #' + pad5(rp.toNo) + ', chưa trừ thuế và chưa tính việc chia giải khi nhiều người cùng trúng.</p></section>';
-    h += '<section class="panel block">' + head('Xác suất trúng từng giải (một vé)') + '<div class="table-wrap"><table class="data"><thead><tr><th>Giải</th><th>Điều kiện</th>' +
-      '<th class="r">Xác suất</th><th class="r">Cơ hội</th><th class="r">Giá trị giải kỳ #' + pad5(rp.toNo) + '</th><th class="r">Trung bình mỗi vé</th></tr></thead><tbody>' +
-      r.tiers.map(function (t) {
-        return '<tr><td>' + esc(t.name) + '</td><td>' + esc(t.desc) + '</td><td class="r nowrap">' + fprob(t.p) + '</td><td class="r nowrap">1 / ' + fi(t.oneIn) +
-          '</td><td class="r nowrap">' + money(t.value) + '</td><td class="r nowrap">' + money(t.ev) + '</td></tr>';
-      }).join('') + '<tr><td colspan="2"><b>Trúng ít nhất một giải</b></td><td class="r"><b>' + fprob(r.anyPrize.p) + '</b></td><td class="r">1 / ' + fi(r.anyPrize.oneIn) +
-      '</td><td></td><td class="r"><b>' + money(r.ev) + '</b></td></tr></tbody></table></div></section>';
-    h += '<div class="grid-2 block"><section class="panel">' + head('Nếu đã chơi bộ số này ' + fi(rp.draws) + ' kỳ', 'Từ ' + fdate(rp.from) + ' đến ' + fdate(rp.to) + '.') +
-      '<div class="table-wrap"><table class="data"><thead><tr><th>Giải</th><th class="r">Số lần trúng</th><th class="r">Trung bình một bộ số</th></tr></thead><tbody>' +
-      rp.tiers.map(function (t) { return '<tr><td>' + esc(t.name) + '</td><td class="r">' + fi(t.count) + '</td><td class="r">' + fd(t.exp, t.exp < 1 ? 2 : 1) + '</td></tr>'; }).join('') +
-      '</tbody></table></div><p class="note" style="margin-top:10px">Cột cuối là số lần trúng trung bình của một bộ số bất kỳ trong ' + fi(rp.draws) + ' kỳ; chênh lệch quanh con số này là do may rủi.</p></section>' +
-      '<section class="panel">' + head('Số lượng số trùng ở mỗi kỳ') + colChart(r.matchDist.map(function (d) {
-        return { label: d.m + ' số', obs: d.obs, exp: d.exp, tip: '<b>Trùng ' + d.m + ' số</b><br>Thực tế: ' + fi(d.obs) + ' kỳ<br>Trung bình một bộ số: ' + fd(d.exp) + ' kỳ' };
-      }), { h: 220, cols: 2, title: 'Số lượng số trùng ở mỗi kỳ' }) + '</section></div>';
+    var rp = r.replay, h = '';
     if (rp.best.length) {
-      h += '<section class="panel block">' + head('Các kỳ bộ số này trúng giải', rp.winCount + ' lần' + (rp.winCount > rp.best.length ? ', hiển thị ' + rp.best.length + ' lần thưởng cao nhất' : '') + '.') +
-        '<div class="table-wrap tall"><table class="data"><thead><tr><th>Kỳ</th><th>Ngày</th><th>Trùng</th><th>Giải</th><th class="r">Tiền thưởng</th></tr></thead><tbody>' +
+      var mine = r.ticket.numbers.map(Number), mySp = r.ticket.special ? +r.ticket.special : null;
+      // kết quả kỳ đó: số trùng với vé hiện màu, số không trùng hiện mờ
+      var drawBalls = function (w) {
+        if (!w.main) return '';
+        var b = '<span class="balls">' + w.main.map(function (n) { return ball(n, 'sm' + (mine.indexOf(n) >= 0 ? '' : ' flat'), mine.indexOf(n) >= 0 ? 'Trùng với vé của bạn' : ''); }).join('');
+        if (w.bonus && w.bonus.length) b += '<span class="sep" aria-hidden="true"></span>' + w.bonus.map(function (n) {
+          var hit = mySp != null ? n === mySp : mine.indexOf(n) >= 0;
+          return ball(n, 'sm' + (hit ? ' special' : ' flat'), hit ? 'Số đặc biệt trùng với vé của bạn' : 'Số đặc biệt');
+        }).join('');
+        return b + '</span>';
+      };
+      h += '<section class="panel">' + head('Các kỳ bộ số này trúng giải', rp.winCount + ' lần' + (rp.winCount > rp.best.length ? ', hiển thị ' + rp.best.length + ' lần thưởng cao nhất' : '') + '. Số có màu là số trùng với vé của bạn.') +
+        '<div class="table-wrap tall"><table class="data"><thead><tr><th>Kỳ</th><th>Ngày</th><th>Kết quả kỳ đó</th><th>Trùng</th><th>Giải</th><th class="r">Tiền thưởng</th></tr></thead><tbody>' +
         rp.best.map(function (w) {
           var needSp = /đặc biệt/.test(r.tiers[w.tier].desc);
-          return '<tr><td>#' + pad5(w.no) + '</td><td>' + fdate(w.date) + '</td><td>' + w.m + ' số' + (w.s && needSp ? ' và số đặc biệt' : '') + '</td><td>' + esc(w.name) + '</td><td class="r">' + money(w.prize) + '</td></tr>';
+          return '<tr><td>#' + pad5(w.no) + '</td><td>' + fdate(w.date) + '</td><td>' + drawBalls(w) + '</td><td>' + w.m + ' số' + (w.s && needSp ? ' và số đặc biệt' : '') + '</td><td>' + esc(w.name) + '</td><td class="r">' + money(w.prize) + '</td></tr>';
         }).join('') + '</tbody></table></div></section>';
-    } else h += '<p class="note block">Bộ số này chưa trúng giải nào trong phạm vi kỳ đã chọn.</p>';
+    } else h += '<p class="note">Bộ số này chưa trúng giải nào trong phạm vi kỳ đã chọn.</p>';
     return h;
   }
 
@@ -755,11 +707,11 @@
   /* ============================================================ điều phối hiển thị */
   var RENDER = {
     'tong-quan': renderOverview, 'bang-so': renderNumbers, 'so-gan': renderGan, 'cap-so': renderPairs,
-    'ngau-nhien': renderRandomness, 'kiem-tra-ve': renderCheck, 'goi-y': renderSuggest,
+    'ngau-nhien': renderRandomness, 'goi-y': renderSuggest,
     'the-le': renderRules, 'lich-su': renderHistory, 'phuong-phap': renderMethod
   };
   // Tên mục rút gọn cho màn hình hẹp (để các nút xếp gọn trong ít hàng)
-  var NAV_SHORT = { 'ngau-nhien': 'Ngẫu nhiên', 'kiem-tra-ve': 'Kiểm tra vé', 'goi-y': 'Gợi ý', 'the-le': 'Thể lệ', 'lich-su': 'Lịch sử', 'phuong-phap': 'Phương pháp' };
+  var NAV_SHORT = { 'ngau-nhien': 'Ngẫu nhiên', 'goi-y': 'Gợi ý', 'the-le': 'Thể lệ', 'lich-su': 'Lịch sử', 'phuong-phap': 'Phương pháp' };
   function navLabel(s) {
     var sh = NAV_SHORT[s.id];
     return sh ? '<span class="lb-full">' + esc(s.label) + '</span><span class="lb-short">' + esc(sh) + '</span>' : esc(s.label);
@@ -798,9 +750,10 @@
     if (!S.stats) { $('#view').html('<p class="empty">Đang tải dữ liệu…</p>'); return; }
     if (S.stats.error) { $('#view').html('<div class="alert error">' + esc(S.stats.error) + ' Hãy chọn phạm vi rộng hơn.</div>'); return; }
     $('#view').html(RENDER[sec.id]());
-    if (sec.id === 'kiem-tra-ve' && S.ck && S.ck.game === S.game && S.ck.nums) autoCheck();
+    if (sec.id === 'cap-so' && S.ck && S.ck.game === S.game && S.ck.nums) autoCheck();
   }
   function go(id) {
+    if (id === 'kiem-tra-ve') id = 'cap-so'; // mục Kiểm tra vé cũ đã gộp vào Cặp số
     if (!SECTIONS.some(function (s) { return s.id === id; })) id = 'tong-quan';
     S.section = id;
     tipHide();
@@ -909,8 +862,8 @@
         e.preventDefault();
         S.pairOf = +$(this).attr('data-n');
         tipHide();
-        renderSection();
-        $('.slip .cell[data-n="' + S.pairOf + '"]').trigger('focus');
+        $('#pair-box').html(pairBoxHtml());
+        $('#pair-box .slip .cell[data-n="' + S.pairOf + '"]').trigger('focus');
       })
       .on('change', '.sort-sel', function () {
         var id = $(this).attr('data-sort-id'), i = +$(this).val(), st = S.sort[id], tb = S._tables && S._tables[id];
@@ -930,71 +883,17 @@
         if (st.k === i) st.dir = -st.dir; else { st.k = i; st.dir = i === 0 ? 1 : -1; }
         $t.parent().html(sortTable(id, tb.cols, tb.rows));
       })
-      .on('submit', '#ck-form', function (e) { e.preventDefault(); runCheck(); })
-      .on('keydown', '#ck-nums', function (e) {
-        if (e.key.length !== 1 || e.ctrlKey || e.metaKey || e.altKey) return;
-        if (!/^\d$/.test(e.key)) e.preventDefault();
+      .on('click', '[data-del]', function () {
+        var n = +$(this).attr('data-del');
+        setTicket(pickedNums().filter(function (x) { return x !== n; }));
       })
-      .on('input', '#ck-nums', function () {
-        var el = this, g = game(), before = el.value.slice(0, el.selectionStart).replace(/\D/g, '').length;
-        var val = fmtNums(el.value, g.nMain);
-        if (val !== el.value) {
-          el.value = val;
-          var pos = caretAfterDigits(val, before);
-          el.setSelectionRange(pos, pos);
-        }
-        syncPick();
-        autoCheck();
-      })
-      .on('click', '.pick-cell', function () {
-        var g = game(), n = +$(this).attr('data-n'), sel = selNums($('#ck-nums').val(), g), i = sel.indexOf(n);
-        if (i >= 0) sel.splice(i, 1);
-        else if (sel.length < g.nMain) sel.push(n);
-        else return;
-        sel.sort(function (a, b) { return a - b; });
-        $('#ck-nums').val(sel.map(pad2).join(' '));
-        syncPick();
-        autoCheck();
-      })
-      .on('click', '#ck-clear', function () {
-        $('#ck-nums').val('');
-        syncPick();
-        autoCheck();
-      })
-      .on('change', '#ck-sp', autoCheck)
-      .on('input', '#ck-tpl', function () {
-        try { localStorage.setItem(tplKey(game()), this.value); } catch (e) {}
-        updateMsg();
-      })
-      .on('click', '#ck-tpl-reset', function (e) {
-        e.preventDefault();
-        try { localStorage.removeItem(tplKey(game())); } catch (er) {}
-        $('#ck-tpl').val(defTpl(game()));
-        updateMsg();
-      })
-      .on('click', '#ck-copy', function () {
-        var btn = $(this), ta = document.getElementById('ck-msg-text'), txt = ta.value;
-        var done = function () { btn.text('Đã sao chép'); setTimeout(function () { btn.text('Sao chép tin nhắn'); }, 1800); };
-        var fallback = function () { ta.focus(); ta.select(); try { document.execCommand('copy'); done(); } catch (e) { btn.text('Hãy giữ và chọn Sao chép'); } };
-        if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(txt).then(done, fallback);
-        else fallback();
-      })
+      .on('click', '#ck-clear', function () { setTicket([], ''); })
+      .on('change', '#ck-sp', function () { S.ck = { game: S.game, nums: pickedNums().map(pad2).join(' '), sp: $(this).val() || '' }; autoCheck(); })
       .on('click', '#pair-use', function () {
-        var g = game(), same = S.ck && S.ck.game === S.game, cur = pickedNums();
-        if (cur.indexOf(S.pairOf) < 0 && cur.length < g.nMain) cur.push(S.pairOf);
-        cur.sort(function (a, b) { return a - b; });
-        S.ck = { game: S.game, nums: cur.map(pad2).join(' '), sp: same ? S.ck.sp : '' };
-        if (cur.length >= g.nMain) { location.hash = '#kiem-tra-ve'; return; }
-        renderSection();
-      })
-      .on('click', '#ck-rand', function () {
-        var g = game(), pool = [], i, j, t;
-        for (i = 1; i <= g.max; i++) pool.push(i);
-        for (i = pool.length - 1; i > 0; i--) { j = Math.floor(Math.random() * (i + 1)); t = pool[i]; pool[i] = pool[j]; pool[j] = t; }
-        $('#ck-nums').val(pool.slice(0, g.nMain).sort(function (a, b) { return a - b; }).map(pad2).join(' '));
-        if (specialPick(g)) $('#ck-sp').val(String(1 + Math.floor(Math.random() * g.bonusMax)));
-        syncPick();
-        runCheck();
+        var g = game(), cur = pickedNums();
+        if (cur.indexOf(S.pairOf) >= 0 || cur.length >= g.nMain) return;
+        cur.push(S.pairOf);
+        setTicket(cur);
       })
       .on('click', '[data-sg]', function () {
         S.sgMode = $(this).attr('data-sg');
@@ -1004,7 +903,7 @@
       .on('click', '#sg-go', runSuggest)
       .on('click', '[data-check]', function () {
         S.ck = { game: S.game, nums: $(this).attr('data-check'), sp: '' };
-        location.hash = '#kiem-tra-ve';
+        if (location.hash === '#cap-so') renderSection(); else location.hash = '#cap-so';
       })
       .on('click', '#cross-run', function () {
         var $b = $(this).prop('disabled', true).text('Đang đối chiếu…');
@@ -1032,6 +931,7 @@
     });
 
     var h = location.hash.slice(1);
+    if (h === 'kiem-tra-ve') h = 'cap-so';
     S.section = SECTIONS.some(function (s) { return s.id === h; }) ? h : 'tong-quan';
     renderNav();
     renderSection();
