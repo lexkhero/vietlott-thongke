@@ -75,7 +75,7 @@ button, input, select { font: inherit; color: inherit; }
   padding: 20px 12px; position: sticky; top: 56px; height: calc(100vh - 56px); overflow-y: auto;
 }
 .content { padding: 28px 32px 64px; min-width: 0; outline: none; }
-.content-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+.content-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; padding: 0 16px;}
 .page-sub { color: var(--ink-2); margin-top: 4px; max-width: 72ch; }
 
 /* chọn loại xổ số */
@@ -356,7 +356,8 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   .game-item .g-when { display: none; }
   h1 { font-size: 22px; }
   h2 { font-size: 17px; }
-  .panel { padding: 16px; }
+  .content { padding: 20px 0px 48px; }
+  .panel { padding: 8px; border-radius: 0; }
   .panel-head { margin-bottom: 12px; }
   .board { padding: 20px 16px; border-radius: 14px; gap: 14px; }
   .board-prizes { min-width: 0; }
