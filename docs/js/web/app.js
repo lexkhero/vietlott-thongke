@@ -245,7 +245,7 @@
       if (latest.indexOf(n.n) >= 0) { cls += ' latest'; tip += '<br>Có trong kết quả kỳ gần nhất'; }
       if (picked.indexOf(n.n) >= 0) { cls += ' picked'; tip += '<br>Đã có trong vé ở mục Kiểm tra vé'; }
       return '<div class="' + cls + '" tabindex="0" data-n="' + n.n + '" data-tip="' + esc(tip) + '"><span class="c-n">' + pad2(n.n) +
-        '</span><span class="c-v">' + val + '</span>' + (metric === 'pair' ? '<span class="c-t ' + totCls(n.z) + '">' + fi(n.count) + '</span>' : '') + '</div>';
+        '</span><span class="c-v">' + val + '</span>' + (metric === 'pair' ? '<span class="c-g" title="Số gan: số kỳ chưa ra của số này">' + (n.wait === 0 ? 'vừa ra' : 'gan ' + fi(n.wait) + ' kỳ') + '</span><span class="c-t ' + totCls(n.z) + '">' + fi(n.count) + '</span>' : '') + '</div>';
     });
     return '<div class="slip" data-metric="' + metric + '">' + cells.join('') + '</div>';
   }
