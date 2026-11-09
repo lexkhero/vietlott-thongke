@@ -224,7 +224,7 @@
       } else if (metric === 'pair') {
         var a = S.pairOf;
         if (n.n === a) {
-          cls += ' selected'; val = fi(n.count) + ' lần về';
+          cls += ' selected'; val = 'đang xem';
           tip = '<b>Số ' + pad2(a) + '</b><br>Số đang chọn<br>Đã về ' + fi(n.count) + ' lần trong ' + fi(st.window.draws) + ' kỳ';
         }
         else {
@@ -243,7 +243,7 @@
       if (latest.indexOf(n.n) >= 0) { cls += ' latest'; tip += '<br>Có trong kết quả kỳ gần nhất'; }
       if (picked.indexOf(n.n) >= 0) { cls += ' picked'; tip += '<br>Đã có trong vé ở mục Kiểm tra vé'; }
       return '<div class="' + cls + '" tabindex="0" data-n="' + n.n + '" data-tip="' + esc(tip) + '"><span class="c-n">' + pad2(n.n) +
-        '</span><span class="c-v">' + val + '</span></div>';
+        '</span><span class="c-v">' + val + '</span>' + (metric === 'pair' ? '<span class="c-t">' + fi(n.count) + ' lần về</span>' : '') + '</div>';
     });
     return '<div class="slip" data-metric="' + metric + '">' + cells.join('') + '</div>';
   }
