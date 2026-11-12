@@ -1,34 +1,63 @@
 <!doctype html>
-<html lang="vi">
+<html lang="vi" data-theme="light" data-game="655">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#13213c">
+  <meta name="theme-color" content="#0d1730">
+  <meta name="color-scheme" content="light dark">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Vietlott">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <title>Thống kê Vietlott</title>
+  <script>
+    /* Chọn giao diện sáng/tối trước khi vẽ trang để không bị nháy màu. 'auto' = theo thiết bị. */
+    (function () {
+      var m = 'auto', r = document.documentElement;
+      try { m = localStorage.getItem('vietlott-theme') || 'auto'; } catch (e) {}
+      var dark = m === 'dark' || (m !== 'light' && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
+      r.setAttribute('data-theme', dark ? 'dark' : 'light');
+      r.setAttribute('data-theme-mode', m === 'dark' || m === 'light' ? m : 'auto');
+      try { r.setAttribute('data-tech', localStorage.getItem('vietlott-tech') === '1' ? '1' : '0'); } catch (e) { r.setAttribute('data-tech', '0'); }
+    })();
+  </script>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+  <a class="skip" href="#content">Tới nội dung</a>
+
+  <!-- Thanh trên cùng: chỉ hiện ở điện thoại và máy tính bảng -->
   <header class="topbar">
-    <div class="brand"><span class="brand-ball" aria-hidden="true"></span>Thống kê Vietlott</div>
-    <div class="topbar-status" id="data-status"></div>
-    <button type="button" class="btn btn-ghost-light" id="btn-update">Cập nhật<span class="hide-sm"> dữ liệu</span></button>
+    <a class="brand" href="#tong-quan" aria-label="Thống kê Vietlott, về Tổng quan"><span class="brand-ball" aria-hidden="true"></span></a>
+    <div class="game-switch" id="game-switch" role="group" aria-label="Loại xổ số"></div>
+    <button type="button" class="icon-btn on-stage" data-update aria-label="Cập nhật dữ liệu">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.3-4.3L4 8.5"/><path d="M4 4v4.5h4.5"/><path d="M4 13a8 8 0 0 0 14.3 4.3L20 15.5"/><path d="M20 20v-4.5h-4.5"/></svg>
+    </button>
   </header>
 
   <div class="shell">
+    <!-- Cột trái: chỉ hiện ở màn hình rộng -->
     <aside class="sidebar">
+      <a class="brand" href="#tong-quan"><span class="brand-ball" aria-hidden="true"></span><span class="brand-name">Thống kê Vietlott</span></a>
       <nav class="game-list" id="game-list" aria-label="Loại xổ số"></nav>
       <nav class="section-nav" id="section-nav" aria-label="Mục"></nav>
+      <div class="side-foot">
+        <p class="side-status" id="data-status"></p>
+        <button type="button" class="btn btn-ghost-light" data-update>
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.3-4.3L4 8.5"/><path d="M4 4v4.5h4.5"/><path d="M4 13a8 8 0 0 0 14.3 4.3L20 15.5"/><path d="M20 20v-4.5h-4.5"/></svg>
+          <span>Cập nhật dữ liệu</span>
+        </button>
+        <label class="switch side-tech"><input type="checkbox" data-tech-toggle>Hiện số liệu kỹ thuật</label>
+        <div class="theme-seg" data-theme-seg role="group" aria-label="Giao diện"></div>
+      </div>
     </aside>
 
     <main class="content" id="content" tabindex="-1">
+      <section class="stage" id="stage" aria-label="Kết quả kỳ mới nhất" hidden></section>
       <div class="content-head">
-        <div>
+        <div class="ch-title">
           <h1 id="page-title">Tổng quan</h1>
           <p class="page-sub" id="page-sub"></p>
         </div>
@@ -42,11 +71,17 @@
     </main>
   </div>
 
+  <!-- Thanh mục ở cuối màn hình: điện thoại và máy tính bảng -->
+  <nav class="tabbar" id="tabbar" aria-label="Mục chính"></nav>
+
+  <div class="sheet-root" id="sheet-root"></div>
+  <div class="toasts" id="toasts" role="status" aria-live="polite"></div>
   <div class="tip" id="tip" role="tooltip" hidden></div>
 
   <script src="lib/jquery/dist/jquery.min.js"></script>
   <script src="js/engine.js"></script>
   <script src="js/shim.js"></script>
+  <script src="js/web/terms.js"></script>
   <script src="js/web/app.js"></script>
   <script src="js/web/sections.js"></script>
   <script>
