@@ -74,6 +74,10 @@
 [data-game="655"] { --game: #e5487c; }
 [data-game="645"] { --game: #6278f5; }
 [data-game="535"] { --game: #17a892; }
+[data-game="max3d"] { --game: #e0892b; }
+[data-game="max3dpro"] { --game: #9b5de5; }
+[data-game="keno"] { --game: #2a9fd6; }
+[data-game="bingo18"] { --game: #d1495b; }
 
 /* ---------------------------------------------------------- nền tảng */
 *, *::before, *::after { box-sizing: border-box; }
@@ -152,10 +156,11 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .game-item[aria-current="true"] { background: rgba(255, 255, 255, .11); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .13); }
 
 /* chọn loại xổ số (thanh trên cùng ở điện thoại) */
-.game-switch { flex: 1; min-width: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; padding: 3px; border-radius: 12px; background: rgba(255, 255, 255, .09); }
+.game-switch { flex: 1; min-width: 0; display: flex; gap: 2px; padding: 3px; border-radius: 12px; background: rgba(255, 255, 255, .09); overflow-x: auto; scrollbar-width: none; scroll-snap-type: x proximity; }
+.game-switch::-webkit-scrollbar { display: none; }
 .gs-item {
   border: 0; background: transparent; color: var(--stage-ink-2); cursor: pointer;
-  border-radius: 9px; min-height: 34px; padding: 0 4px; font-weight: 650; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  border-radius: 9px; min-height: 34px; padding: 0 10px; flex: 1 0 auto; scroll-snap-align: center; font-weight: 650; font-size: 13px; white-space: nowrap;
 }
 .gs-item i { font-style: normal; font-weight: 500; opacity: .8; }
 .gs-item[aria-pressed="true"] { background: #fff; color: #0d1730; }
@@ -869,3 +874,45 @@ body.sheet-open { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }
+
+/* ---------------------------------------------------------- Max 3D, Max 3D Pro, Keno, Bingo18 */
+.tri { display: inline-flex; align-items: center; justify-content: center; min-width: 52px; height: 32px; padding: 0 8px; border-radius: 10px; font-family: var(--font-ball); font-weight: 700; font-size: 16px; letter-spacing: .06em; font-variant-numeric: tabular-nums; color: #fff; background: radial-gradient(circle at 30% 20%, var(--ball-hi) 0, var(--ball) 55%, var(--ball-lo) 100%); box-shadow: inset 0 -2px 3px rgba(0, 0, 0, .16); }
+.tri-rows { display: grid; gap: 10px; }
+.tri-grp { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 8px 12px; align-items: center; }
+.tri-grp .tg-n { color: var(--stage-ink-2); font-size: 13px; }
+.tri-grp .tg-v { display: flex; flex-wrap: wrap; gap: 6px; }
+.tri-compact { display: grid; gap: 6px; }
+.tri-compact .tri-grp { grid-template-columns: 96px minmax(0, 1fr); }
+.tri-compact .tg-n { color: var(--ink-2); }
+.tri-compact .tri { min-width: 44px; height: 26px; font-size: 13px; border-radius: 8px; }
+.ball.die { font-size: calc(var(--s) * .5); }
+.ball.xl.die { --s: 60px; }
+.xrack .rack-main { display: flex; flex-wrap: wrap; gap: 10px; padding: 0; background: none; box-shadow: none; }
+.xrack .ball { --s: 56px; }
+.sum-chip { margin-left: 10px; padding: 3px 10px; border-radius: 999px; background: var(--mid); color: var(--ink-2); font-size: 12.5px; font-weight: 650; }
+.slip.xslip { grid-template-columns: repeat(10, minmax(0, 1fr)); }
+.xslip .cell { cursor: default; }
+.acc { display: grid; gap: 8px; }
+.acc-i { border: 1px solid var(--line); border-radius: var(--r-md); background: var(--panel); padding: 0 14px; }
+.acc-i > summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; padding: 12px 0; cursor: pointer; list-style: none; }
+.acc-i > summary::-webkit-details-marker { display: none; }
+.acc-i > summary b { min-width: 52px; }
+.acc-i > summary span { color: var(--ink-2); font-size: 13.5px; }
+.acc-i[open] { padding-bottom: 12px; }
+.acc-i[open] > summary { border-bottom: 1px solid var(--line); margin-bottom: 10px; }
+@media (max-width: 860px) {
+  .grid-3 { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 560px) {
+  .tri-grp { grid-template-columns: 92px minmax(0, 1fr); }
+  .tri { min-width: 46px; height: 30px; font-size: 15px; }
+  .xrack .ball { --s: 40px; }
+  .ball.xl.die { --s: 52px; }
+  .slip.xslip { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+}
+
+@media (max-width: 640px) {
+  .verdict { flex-direction: column; gap: 8px; }
+  .verdict > div { min-width: 0; }
+}
+@media (max-width: 560px) { table.data td .badge { white-space: normal; text-align: left; } }

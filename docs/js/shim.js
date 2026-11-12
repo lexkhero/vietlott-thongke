@@ -89,6 +89,12 @@
       });
     },
     '/api/crosscheck': function () { return cross || { none: true }; },
+    // ---- Bốn giải bổ sung (Max 3D, Max 3D Pro, Keno, Bingo18): dữ liệu và phân tích tính sẵn lúc dựng
+    '/api/x': function (q) {
+      var code = q.get('game') || '';
+      if (!/^[a-z0-9]{3,10}$/.test(code)) throw httpError(400, 'game không hợp lệ: ' + code);
+      return fetchJson('x-' + code + '.json');
+    },
 
     // ---- Statistical Engine chuyên sâu (tính trên điện thoại theo phạm vi đang chọn)
     '/api/explore': function (q) {

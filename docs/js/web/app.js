@@ -6,7 +6,11 @@
   var DEFAULT_GAMES = [
     { code: '655', label: 'Power 6/55', nMain: 6, max: 55, hasBonus: true, bonusMax: 55, schedule: { days: [2, 4, 6], times: ['18:00'] } },
     { code: '645', label: 'Mega 6/45', nMain: 6, max: 45, hasBonus: false, bonusMax: 0, schedule: { days: [0, 3, 5], times: ['18:00'] } },
-    { code: '535', label: 'Lotto 5/35', nMain: 5, max: 35, hasBonus: true, bonusMax: 12, schedule: { days: [0, 1, 2, 3, 4, 5, 6], times: ['13:00', '21:00'] } }
+    { code: '535', label: 'Lotto 5/35', nMain: 5, max: 35, hasBonus: true, bonusMax: 12, schedule: { days: [0, 1, 2, 3, 4, 5, 6], times: ['13:00', '21:00'] } },
+    { code: 'max3d', label: 'Max 3D', short: 'Max 3D', x: true, kind: 'triple', schedule: { days: [1, 3, 5], times: ['18:00'] } },
+    { code: 'max3dpro', label: 'Max 3D Pro', short: '3D Pro', x: true, kind: 'triple', schedule: { days: [2, 4, 6], times: ['18:00'] } },
+    { code: 'keno', label: 'Keno', short: 'Keno', x: true, kind: 'keno', schedule: { every: 8 } },
+    { code: 'bingo18', label: 'Bingo18', short: 'Bingo18', x: true, kind: 'bingo', schedule: { every: 6 } }
   ];
   var SECTIONS = [
     { id: 'tong-quan', label: 'Tổng quan', scope: true, sub: 'Kết quả mới nhất, kỳ quay tiếp theo, máy quay có ngẫu nhiên không và số lần ra của từng số.' },
@@ -26,7 +30,7 @@
     'nhieu-ve': 'Chia một số tiền cho nhiều vé', 'kiem-chung': 'Các cách chọn số có hơn chọn bừa không', 'xac-suat': 'Cơ hội trúng và số tiền nhận lại',
     'the-le': 'Cách chơi và bảng giải', 'lich-su': '60 kỳ quay gần nhất', 'thuat-ngu': 'Lời giải thích cho các từ khó'
   };
-  var GAME_COLOR = { '655': '#e5487c', '645': '#6278f5', '535': '#17a892' };
+  var GAME_COLOR = { '655': '#e5487c', '645': '#6278f5', '535': '#17a892', max3d: '#e0892b', max3dpro: '#9b5de5', keno: '#2a9fd6', bingo18: '#d1495b' };
   var ICON = {
     'tong-quan': '<path d="M4 11.5 12 5l8 6.5"/><path d="M6 10v9h12v-9"/><path d="M10 19v-5h4v5"/>',
     'phan-tich': '<path d="M5 19V11"/><path d="M10 19V5"/><path d="M15 19v-6"/><path d="M20 19V9"/>',
@@ -86,11 +90,15 @@
   }
   function game() { return S.games.filter(function (g) { return g.code === S.game; })[0] || S.games[0]; }
   function specialPick(g) { return !!(g.hasBonus && g.bonusMax && g.bonusMax !== g.max); }
-  function section() { return SECTIONS.filter(function (s) { return s.id === S.section; })[0] || SECTIONS[0]; }
+  // Bốn giải bổ sung (cờ x) dùng bộ mục riêng trong extra-ui.js
+  function sections() { return game().x && window.VLX ? window.VLX.SECTIONS : SECTIONS; }
+  function tabMain() { return game().x && window.VLX ? window.VLX.TAB_MAIN : TAB_MAIN; }
+  function section() { var l = sections(); return l.filter(function (s) { return s.id === S.section; })[0] || l[0]; }
 
   // "Thứ Ba, Năm, Bảy lúc 18h" / "Hằng ngày lúc 13h và 21h"
   function scheduleText(g) {
     var s = g.schedule; if (!s) return '';
+    if (s.every) return 'Cứ ' + s.every + ' phút một kỳ';
     var times = s.times.map(function (t) { return t.replace(':00', 'h'); }).join(' và ');
     if (s.days.length === 7) return 'Hằng ngày lúc ' + times;
     var names = { 1: 'Hai', 2: 'Ba', 3: 'Tư', 4: 'Năm', 5: 'Sáu', 6: 'Bảy' };
@@ -379,6 +387,12 @@
     return h + '</div>';
   }
   function renderStage() {
+    if (game().x) {
+      var xon = S.section === 'tong-quan' && S.xdata && S.xdata.recent && S.xdata.recent[0];
+      var $x = $('#stage').prop('hidden', !xon);
+      if (xon) $x.html(window.VLX.stage(S.xdata)); else $x.empty();
+      return;
+    }
     var on = S.section === 'tong-quan' && S.draws && S.draws[0] && S.stats && !S.stats.error;
     var $s = $('#stage').prop('hidden', !on);
     if (on) $s.html(stageHtml(S.draws[0])); else $s.empty();
@@ -686,7 +700,7 @@
     openSheet(t.name, '<div class="term-body">' + termBody(t) + '</div><p class="term-all"><a href="#thuat-ngu" data-close>Xem tất cả thuật ngữ</a></p>');
   }
   function openMore() {
-    var items = SECTIONS.filter(function (s) { return !TAB_MAIN.some(function (t) { return t[0] === s.id; }); });
+    var items = sections().filter(function (s) { return !tabMain().some(function (t) { return t[0] === s.id; }); });
     var g = game();
     openSheet('Thêm', '<nav class="more-list" aria-label="Các mục khác">' + items.map(function (s) {
       return '<a class="more-item" href="#' + s.id + '" data-close' + (s.id === S.section ? ' aria-current="page"' : '') + '><span class="mi-ic">' + icon(s.id) + '</span><span><b>' + esc(s.label) + '</b><small>' + esc(MORE_SUB[s.id] || '') + '</small></span>' + icon('chev') + '</a>';
@@ -751,17 +765,19 @@
         '<span class="g-name">' + esc(g.label) + '</span><span class="g-when">' + esc(scheduleText(g)) + '</span></button>';
     }).join(''));
     $('#game-switch').html(S.games.map(function (g) {
-      var p = g.label.split(' ');
-      return '<button type="button" class="gs-item"' + item(g) + ' aria-pressed="' + (g.code === S.game) + '">' + esc(p[0]) + ' <i>' + esc(p[1] || '') + '</i></button>';
+      var p = (g.short || g.label).split(' ');
+      return '<button type="button" class="gs-item"' + item(g) + ' aria-pressed="' + (g.code === S.game) + '">' + esc(p[0]) + (p[1] ? ' <i>' + esc(p[1]) + '</i>' : '') + '</button>';
     }).join(''));
-    $('#section-nav').html(SECTIONS.map(function (s) {
+    $('#section-nav').html(sections().map(function (s) {
       return '<a class="nav-item" href="#' + s.id + '"' + (s.id === S.section ? ' aria-current="page"' : '') + '>' + icon(s.id) + '<span>' + esc(s.label) + '</span></a>';
     }).join(''));
-    var inMain = TAB_MAIN.some(function (t) { return t[0] === S.section; });
-    $('#tabbar').html(TAB_MAIN.map(function (t) {
+    var inMain = tabMain().some(function (t) { return t[0] === S.section; });
+    $('#tabbar').html(tabMain().map(function (t) {
       return '<a href="#' + t[0] + '"' + (t[0] === S.section ? ' aria-current="page"' : '') + '><span class="tb-ic">' + icon(t[0]) + '</span>' + esc(t[1]) + '</a>';
     }).join('') + '<button type="button" data-more' + (inMain ? '' : ' aria-current="page"') + '><span class="tb-ic">' + icon('more') + '</span>Thêm</button>');
     document.documentElement.setAttribute('data-game', S.game);
+    var sw = $('#game-switch')[0], on = $('#game-switch .gs-item[aria-pressed="true"]')[0];
+    if (sw && on && sw.scrollWidth > sw.clientWidth) sw.scrollLeft = on.offsetLeft - (sw.clientWidth - on.offsetWidth) / 2;
   }
   function renderStatus() {
     var g = game();
@@ -784,6 +800,12 @@
     if (sec.id === 'thuat-ngu') { $('#view').html(renderTerms()); return; }
     if (!S.stats) { $('#view').html('<div class="skeleton" aria-busy="true"><i></i><i></i><i></i><i></i></div>'); return; }
     if (S.stats.error) { $('#view').html('<div class="alert error">' + esc(S.stats.error) + ' Hãy chọn phạm vi rộng hơn.</div>'); return; }
+    if (game().x) {
+      var xf = window.VLX && window.VLX.render[sec.id];
+      $('#view').html(xf && S.xdata ? xf(S.xdata) : '<p class="empty">Mục này chưa sẵn sàng.</p>');
+      if (window.VLUI.onRender) window.VLUI.onRender(sec.id);
+      return;
+    }
     var fn = RENDER[sec.id] || EXTRA[sec.id];
     $('#view').html(fn ? fn() : '<p class="empty">Mục này chưa sẵn sàng.</p>');
     if (sec.id === 'cap-so' && S.ck && S.ck.game === S.game && S.ck.nums) autoCheck();
@@ -792,7 +814,7 @@
   function go(id) {
     if (id === 'kiem-tra-ve') id = 'cap-so'; // mục Kiểm tra vé cũ đã gộp vào Cặp số
     if (id === 'goi-y') id = 'de-xuat';      // mục Gợi ý cũ đã thay bằng Đề xuất bộ số
-    if (!SECTIONS.some(function (s) { return s.id === id; })) id = 'tong-quan';
+    if (!sections().some(function (s) { return s.id === id; })) id = 'tong-quan';
     var same = S.section === id;
     S.section = id;
     tipHide();
@@ -803,7 +825,8 @@
   }
   function setGame(c) {
     if (!c || c === S.game) return;
-    S.game = c; S.stats = null; S.draws = null; S.pairOf = null;
+    S.game = c; S.stats = null; S.draws = null; S.xdata = null; S.pairOf = null;
+    if (!sections().some(function (s) { return s.id === S.section; })) { S.section = 'tong-quan'; if (location.hash && location.hash !== '#tong-quan') history.replaceState(null, '', '#tong-quan'); }
     save(); renderNav(); renderStatus(); renderSection(); loadGameData();
   }
 
@@ -812,6 +835,17 @@
   function loadGameData() {
     var seq = ++loadSeq, code = S.game, last = S.last;
     $('#view').addClass('loading');
+    if (game().x) {
+      return getJson('/api/x?game=' + code)
+        .done(function (xd) {
+          if (seq !== loadSeq) return;
+          S.xdata = xd; S.stats = { x: true }; S.draws = xd.recent || []; S.loadedAt = Date.now();
+          notice('');
+          renderSection();
+        })
+        .fail(function (m) { if (seq === loadSeq) notice('error', esc(m) + ' Hãy kiểm tra kết nối mạng rồi mở lại ứng dụng.'); })
+        .always(function () { if (seq === loadSeq) $('#view').removeClass('loading'); });
+    }
     return $.when(getJson('/api/stats?game=' + code + '&last=' + last), getJson('/api/draws?game=' + code + '&limit=60'))
       .done(function (st, dr) {
         if (seq !== loadSeq) return;
@@ -830,7 +864,7 @@
   function loadGames() {
     return getJson('/api/games').done(function (list) {
       if ($.isArray(list) && list.length) {
-        S.games = ['655', '645', '535'].map(function (c) { return list.filter(function (g) { return g.code === c; })[0]; }).filter(Boolean);
+        S.games = ['655', '645', '535', 'max3d', 'max3dpro', 'keno', 'bingo18'].map(function (c) { return list.filter(function (g) { return g.code === c; })[0]; }).filter(Boolean);
       }
       renderNav();
       renderStatus();
@@ -864,7 +898,8 @@
     esc: esc, pad2: pad2, pad5: pad5, fi: fi, fd: fd, fpct: fpct, fprob: fprob, fdate: fdate, weekday: weekday, money: money, moneyShort: moneyShort, toInt: toInt,
     ball: ball, ballsHtml: ballsHtml, head: head, badge: badge, colChart: colChart, rankList: rankList, chartW: chartW, niceStep: niceStep, heatClass: heatClass,
     getJson: getJson, game: game, specialPick: specialPick, notice: notice, flash: flash, toast: toast, go: go, rerender: renderSection,
-    icon: icon, lv: lv, term: term, qm: qm, howto: howto, openSheet: openSheet, closeSheet: closeSheet, moneyParts: moneyParts
+    icon: icon, lv: lv, term: term, qm: qm, howto: howto, openSheet: openSheet, closeSheet: closeSheet, moneyParts: moneyParts,
+    drawAt: drawAt, whenText: whenText, cdInner: cdInner, weekday: weekday
   };
 
   /* ============================================================ sự kiện */
@@ -1006,7 +1041,7 @@
     var h = location.hash.slice(1);
     if (h === 'kiem-tra-ve') h = 'cap-so';
     if (h === 'goi-y') h = 'de-xuat';
-    S.section = SECTIONS.some(function (s) { return s.id === h; }) ? h : 'tong-quan';
+    S.section = sections().some(function (s) { return s.id === h; }) ? h : 'tong-quan';
     renderNav();
     renderSection();
     loadGames().always(function () { loadGameData(); });
