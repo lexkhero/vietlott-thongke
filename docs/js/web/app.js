@@ -10,8 +10,12 @@
   ];
   var SECTIONS = [
     { id: 'tong-quan', label: 'Tổng quan', scope: true, sub: 'Kết quả mới nhất, kết luận về độ ngẫu nhiên và tần suất của từng số.' },
+    { id: 'phan-tich', label: 'Phân tích', scope: true, sub: 'Tần suất theo nhiều cửa sổ, chu kỳ, cấu trúc dãy số, nhóm số và toàn bộ phép kiểm định (đã hiệu chỉnh khi thử nhiều giả thuyết).' },
     { id: 'cap-so', label: 'Cặp số', scope: true, sub: 'Chọn số cho vé của bạn từ bảng bên dưới: xem số nào hay ra cùng số nào, các cặp trong vé và những kỳ bộ số đó từng trúng giải.' },
-    { id: 'goi-y', label: 'Gợi ý bộ số', scope: true, sub: 'Sinh bộ số theo tiêu chí bạn chọn. Mọi bộ số đều có cùng cơ hội trúng.' },
+    { id: 'de-xuat', label: 'Đề xuất bộ số', scope: true, sub: 'Bộ số theo từng chiến lược, có chấm điểm, giải thích và kết quả kiểm chứng. Điểm không phải là xác suất trúng: mọi bộ số có cùng cơ hội.' },
+    { id: 'nhieu-ve', label: 'Tối ưu nhiều vé', scope: false, sub: 'Phân bổ một tập vé theo ngân sách: độ bao phủ, độ trùng lặp và xác suất có ít nhất một vé trúng.' },
+    { id: 'kiem-chung', label: 'Kiểm chứng', scope: false, sub: 'Mỗi chiến lược được chạy lại trên lịch sử, chỉ dùng dữ liệu trước từng kỳ, rồi so với mốc ngẫu nhiên.' },
+    { id: 'xac-suat', label: 'Xác suất & kỳ vọng', scope: false, sub: 'Xác suất chính xác của từng hạng giải, giá trị kỳ vọng của một vé và những kỳ có kỳ vọng cao.' },
     { id: 'the-le', label: 'Thể lệ & cách chơi', scope: true, sub: 'Cách chơi, điều kiện trúng từng giải và xác suất trúng của từng loại vé.' },
     { id: 'lich-su', label: 'Lịch sử kết quả', scope: false, sub: 'Kết quả 60 kỳ quay gần nhất.' }
   ];
@@ -19,7 +23,7 @@
   var S = {
     game: '655', last: 0, section: 'tong-quan', games: DEFAULT_GAMES.slice(),
     stats: null, draws: null, cross: null, gridMetric: 'count', pairOf: null,
-    ck: null, sgMode: 'uniform', sgCount: 5, sort: {}
+    ck: null, sort: {}
   };
   try {
     var saved = JSON.parse(localStorage.getItem('vietlott-ui') || '{}');
@@ -294,6 +298,7 @@
   function renderOverview() {
     var st = S.stats, g = game(), w = st.window, v = st.verdict;
     var h = S.draws && S.draws[0] ? boardHtml(S.draws[0]) : '';
+    h += '<div id="ov-extra" class="block" style="margin-top:20px"></div>';
     h += '<div class="grid-2 block" style="margin-top:20px">' +
       '<section class="panel"><div class="verdict"><span class="v-icon ' + v.level + '" aria-hidden="true">' + LEVEL[v.level].icon + '</span><div>' +
       '<h2>' + esc(LEVEL[v.level].title) + '</h2><p class="sub" style="margin-top:6px">' + esc(v.text) + '</p></div></div></section>' +
@@ -469,37 +474,6 @@
   }
 
   /* ============================================================ gợi ý bộ số */
-  var SG_MODES = [
-    { id: 'uniform', label: 'Ngẫu nhiên hoàn toàn' },
-    { id: 'hot', label: 'Ưu tiên số ra nhiều' },
-    { id: 'cold', label: 'Ưu tiên số lâu chưa ra' },
-    { id: 'rare', label: 'Ưu tiên số lớn hơn 31' }
-  ];
-  function renderSuggest() {
-    var cnt = '';
-    [1, 3, 5, 10, 20].forEach(function (c) { cnt += '<option value="' + c + '"' + (S.sgCount === c ? ' selected' : '') + '>' + c + ' bộ</option>'; });
-    return '<section class="panel"><div class="form-row"><div class="field"><span>Cách sinh</span><div class="seg" role="group" aria-label="Cách sinh">' +
-      SG_MODES.map(function (m) { return '<button type="button" data-sg="' + m.id + '" aria-pressed="' + (S.sgMode === m.id) + '">' + m.label + '</button>'; }).join('') +
-      '</div></div><label class="field"><span>Số bộ</span><select id="sg-count">' + cnt + '</select></label>' +
-      '<div class="field"><span>&nbsp;</span><button class="btn" type="button" id="sg-go">Sinh bộ số</button></div></div>' +
-      '<p class="note" style="margin-top:12px">Mọi bộ số đều có cùng cơ hội trúng giải cao nhất: 1 / ' + fi(S.stats.game.jackpotOdds) +
-      '. Cách sinh chỉ thay đổi những số được chọn, không làm tăng cơ hội trúng. "Ưu tiên số lớn hơn 31" giúp tránh kiểu chọn theo ngày sinh mà nhiều người dùng, để nếu trúng thì ít phải chia giải hơn.</p></section>' +
-      '<div id="sg-out" class="block"></div>';
-  }
-  function runSuggest() {
-    var code = S.game;
-    $('#sg-out').addClass('loading');
-    getJson('/api/suggest?game=' + code + '&mode=' + S.sgMode + '&count=' + S.sgCount + '&last=' + S.last).done(function (r) {
-      if (S.game !== code || S.section !== 'goi-y') return;
-      $('#sg-out').html('<section class="panel"><div class="table-wrap"><table class="data"><thead><tr><th>Bộ số</th><th class="r">Tổng</th><th class="r">Số lẻ</th><th></th></tr></thead><tbody>' +
-        r.sets.map(function (s) {
-          return '<tr><td>' + ballsHtml(s.numbers, null, 'sm') + '</td><td class="r">' + s.sum + '</td><td class="r">' + s.odd + '</td>' +
-            '<td class="r"><button type="button" class="btn btn-light btn-sm" data-check="' + s.numbers.map(pad2).join(' ') + '">Kiểm tra bộ này</button></td></tr>';
-        }).join('') + '</tbody></table></div></section>');
-    }).fail(function (m) { $('#sg-out').html('<div class="alert error">' + esc(m) + '</div>'); })
-      .always(function () { $('#sg-out').removeClass('loading'); });
-  }
-
   /* ============================================================ lịch sử */
   function renderHistory() {
     var g = game(), list = S.draws || [];
@@ -553,12 +527,13 @@
   }
 
   /* ============================================================ điều phối hiển thị */
+  // Các mục mới (phân tích, đề xuất, nhiều vé, kiểm chứng, xác suất) do mobile/src/sections.js đăng ký qua VLUI.render
+  var EXTRA = {};
   var RENDER = {
-    'tong-quan': renderOverview, 'cap-so': renderPairs, 'goi-y': renderSuggest,
-    'the-le': renderRules, 'lich-su': renderHistory
+    'tong-quan': renderOverview, 'cap-so': renderPairs, 'the-le': renderRules, 'lich-su': renderHistory
   };
   // Tên mục rút gọn cho màn hình hẹp (để các nút xếp gọn trong ít hàng)
-  var NAV_SHORT = { 'goi-y': 'Gợi ý', 'the-le': 'Thể lệ', 'lich-su': 'Lịch sử' };
+  var NAV_SHORT = { 'de-xuat': 'Đề xuất', 'nhieu-ve': 'Nhiều vé', 'xac-suat': 'Xác suất', 'the-le': 'Thể lệ', 'lich-su': 'Lịch sử' };
   function navLabel(s) {
     var sh = NAV_SHORT[s.id];
     return sh ? '<span class="lb-full">' + esc(s.label) + '</span><span class="lb-short">' + esc(sh) + '</span>' : esc(s.label);
@@ -596,11 +571,14 @@
     document.title = sec.label + ' – ' + game().label + ' – Thống kê Vietlott';
     if (!S.stats) { $('#view').html('<p class="empty">Đang tải dữ liệu…</p>'); return; }
     if (S.stats.error) { $('#view').html('<div class="alert error">' + esc(S.stats.error) + ' Hãy chọn phạm vi rộng hơn.</div>'); return; }
-    $('#view').html(RENDER[sec.id]());
+    var fn = RENDER[sec.id] || EXTRA[sec.id];
+    $('#view').html(fn ? fn() : '<p class="empty">Mục này chưa sẵn sàng.</p>');
     if (sec.id === 'cap-so' && S.ck && S.ck.game === S.game && S.ck.nums) autoCheck();
+    if (window.VLUI.onRender) window.VLUI.onRender(sec.id);
   }
   function go(id) {
     if (id === 'kiem-tra-ve') id = 'cap-so'; // mục Kiểm tra vé cũ đã gộp vào Cặp số
+    if (id === 'goi-y') id = 'de-xuat';      // mục Gợi ý cũ đã thay bằng Đề xuất bộ số
     if (!SECTIONS.some(function (s) { return s.id === id; })) id = 'tong-quan';
     S.section = id;
     tipHide();
@@ -649,6 +627,14 @@
     clearTimeout(flash.t);
     flash.t = setTimeout(function () { notice(''); }, 8000);
   }
+
+  /* ============================================================ cầu nối cho sections.js */
+  window.VLUI = {
+    S: S, LEVEL: LEVEL, render: EXTRA,
+    esc: esc, pad2: pad2, pad5: pad5, fi: fi, fd: fd, fpct: fpct, fprob: fprob, fdate: fdate, weekday: weekday, money: money, moneyShort: moneyShort, toInt: toInt,
+    ball: ball, ballsHtml: ballsHtml, head: head, badge: badge, colChart: colChart, rankList: rankList, chartW: chartW, niceStep: niceStep, heatClass: heatClass,
+    getJson: getJson, game: game, specialPick: specialPick, notice: notice, flash: flash, go: go, rerender: renderSection
+  };
 
   /* ============================================================ sự kiện */
   $(function () {
@@ -732,14 +718,8 @@
         cur.push(S.pairOf);
         setTicket(cur);
       })
-      .on('click', '[data-sg]', function () {
-        S.sgMode = $(this).attr('data-sg');
-        $('[data-sg]').each(function () { $(this).attr('aria-pressed', String($(this).attr('data-sg') === S.sgMode)); });
-      })
-      .on('change', '#sg-count', function () { S.sgCount = +$(this).val() || 5; })
-      .on('click', '#sg-go', runSuggest)
       .on('click', '[data-check]', function () {
-        S.ck = { game: S.game, nums: $(this).attr('data-check'), sp: '' };
+        S.ck = { game: S.game, nums: $(this).attr('data-check'), sp: $(this).attr('data-sp') || '' };
         if (location.hash === '#cap-so') renderSection(); else location.hash = '#cap-so';
       })
       .on('click', '#cross-run', function () {
@@ -769,6 +749,7 @@
 
     var h = location.hash.slice(1);
     if (h === 'kiem-tra-ve') h = 'cap-so';
+    if (h === 'goi-y') h = 'de-xuat';
     S.section = SECTIONS.some(function (s) { return s.id === h; }) ? h : 'tong-quan';
     renderNav();
     renderSection();
