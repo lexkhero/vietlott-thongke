@@ -7,10 +7,6 @@
     { code: '655', label: 'Power 6/55', nMain: 6, max: 55, hasBonus: true, bonusMax: 55, schedule: { days: [2, 4, 6], times: ['18:00'] } },
     { code: '645', label: 'Mega 6/45', nMain: 6, max: 45, hasBonus: false, bonusMax: 0, schedule: { days: [0, 3, 5], times: ['18:00'] } },
     { code: '535', label: 'Lotto 5/35', nMain: 5, max: 35, hasBonus: true, bonusMax: 12, schedule: { days: [0, 1, 2, 3, 4, 5, 6], times: ['13:00', '21:00'] } },
-    { code: 'max3d', label: 'Max 3D', short: 'Max 3D', x: true, kind: 'triple', schedule: { days: [1, 3, 5], times: ['18:00'] } },
-    { code: 'max3dpro', label: 'Max 3D Pro', short: '3D Pro', x: true, kind: 'triple', schedule: { days: [2, 4, 6], times: ['18:00'] } },
-    { code: 'keno', label: 'Keno', short: 'Keno', x: true, kind: 'keno', schedule: { every: 8 } },
-    { code: 'bingo18', label: 'Bingo18', short: 'Bingo18', x: true, kind: 'bingo', schedule: { every: 6 } }
   ];
   var SECTIONS = [
     { id: 'tong-quan', label: 'Tổng quan', scope: true, sub: 'Kết quả mới nhất, kỳ quay tiếp theo, máy quay có ngẫu nhiên không và số lần ra của từng số.' },
@@ -90,7 +86,7 @@
   }
   function game() { return S.games.filter(function (g) { return g.code === S.game; })[0] || S.games[0]; }
   function specialPick(g) { return !!(g.hasBonus && g.bonusMax && g.bonusMax !== g.max); }
-  // Bốn giải bổ sung (cờ x) dùng bộ mục riêng trong extra-ui.js
+  // (đã gỡ bốn giải bổ sung)
   function sections() { return game().x && window.VLX ? window.VLX.SECTIONS : SECTIONS; }
   function tabMain() { return game().x && window.VLX ? window.VLX.TAB_MAIN : TAB_MAIN; }
   function section() { var l = sections(); return l.filter(function (s) { return s.id === S.section; })[0] || l[0]; }
@@ -864,7 +860,7 @@
   function loadGames() {
     return getJson('/api/games').done(function (list) {
       if ($.isArray(list) && list.length) {
-        S.games = ['655', '645', '535', 'max3d', 'max3dpro', 'keno', 'bingo18'].map(function (c) { return list.filter(function (g) { return g.code === c; })[0]; }).filter(Boolean);
+        S.games = ['655', '645', '535'].map(function (c) { return list.filter(function (g) { return g.code === c; })[0]; }).filter(Boolean);
       }
       renderNav();
       renderStatus();
