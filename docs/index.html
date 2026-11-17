@@ -86,9 +86,20 @@
   <script src="js/web/sections.js"></script>
   <script>
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
+      var hadController = !!navigator.serviceWorker.controller, lastReload = 0;
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('sw.js').then(function (reg) {
+          // Kiểm tra bản mới khi mở lại ứng dụng từ nền và định kỳ, không cần tắt hẳn ứng dụng.
+          var check = function () { try { reg.update(); } catch (e) {} };
+          document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') check(); });
+          window.addEventListener('focus', check); window.addEventListener('online', check);
+          setInterval(check, 15 * 60 * 1000);
+        }).catch(function () {});
+      });
+      // Có bản giao diện mới thì tải lại trang để dùng ngay (không áp dụng ở lần cài đầu tiên).
       navigator.serviceWorker.addEventListener('controllerchange', function () {
-        try { if (sessionStorage.getItem('vl_sw_reload')) return; sessionStorage.setItem('vl_sw_reload', '1'); } catch (e) {}
+        if (!hadController) { hadController = true; return; }
+        try { var t = +sessionStorage.getItem('vl_sw_reload') || 0; if (Date.now() - t < 15000) return; sessionStorage.setItem('vl_sw_reload', String(Date.now())); } catch (e) {}
         location.reload();
       });
     }
