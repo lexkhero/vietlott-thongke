@@ -1,5 +1,5 @@
 /* Service worker: giao diện lưu sẵn để mở nhanh/offline; dữ liệu (data/) luôn thử mạng trước. */
-const VERSION = '2f52bd15f4';
+const VERSION = '59173d652e';
 const SHELL = 'vl-shell-' + VERSION;
 const DATA = 'vl-data';
 const FILES = ["./","./index.html","./css/style.css","./lib/jquery/dist/jquery.min.js","./js/engine.js","./js/shim.js","./js/web/app.js","./js/web/sections.js","./js/web/terms.js","./manifest.webmanifest","./icons/apple-touch-icon.png","./icons/icon-192.png","./icons/icon-512.png"];
