@@ -408,13 +408,25 @@
       fact('p sau hiệu chỉnh', rec.pHolm == null ? '–' : pv(rec.pHolm), 'tech') + (rec.auc != null ? fact('AUC (0,5 = như tung đồng xu)', fd(rec.auc, 4), 'tech') : '') +
       fact('Kết luận', sig ? badge('watch', 'Khác chọn bừa, cần theo dõi') : badge('ok', 'Không hơn chọn bừa')) + '</div>';
   }
+  // Số vừa ra ở kỳ gần nhất: đánh dấu chấm vàng trên bóng để dễ nhìn thấy
+  function lastDraw() { return S.draws && S.draws[0] ? S.draws[0] : null; }
+  function prevBalls(main, special) {
+    var L = lastDraw(), pm = L ? L.main || [] : [], pb = L ? L.bonus || [] : [];
+    var tip = L ? 'Số này vừa ra ở kỳ #' + pad5(L.no) + ' (' + fdate(L.date) + ')' : '';
+    var h = '<span class="balls">' + (main || []).map(function (n) { return pm.indexOf(n) >= 0 ? U.ball(n, 'prev', tip) : U.ball(n, ''); }).join('');
+    if (special && special.length) h += '<span class="sep" aria-hidden="true"></span>' + special.map(function (n) {
+      return pb.indexOf(n) >= 0 ? U.ball(n, 'special prev', 'Số đặc biệt này vừa ra ở kỳ #' + pad5(L.no)) : U.ball(n, 'special', 'Số đặc biệt');
+    }).join('');
+    return h + '</span>';
+  }
+  function prevCount(main) { var L = lastDraw(); return L && L.main ? (main || []).filter(function (n) { return L.main.indexOf(n) >= 0; }).length : 0; }
   function setCard(s, i, g) {
     var k = g.nMain, st = s.structure, sp = s.special ? [s.special] : null;
     var sc = s.score != null ? Math.round(s.score * 100) : null;
     var score = sc != null ? '<div class="set-score" style="--p:' + sc + '" data-tip="Điểm theo cách chọn đang dùng: bộ số này hợp với tiêu chí hơn ' + sc + ' trong 100 bộ chọn bừa. KHÔNG phải khả năng trúng."><b>' + sc + '</b><small>điểm</small></div>' : '';
     var tp = s.topPairs.length ? 'Cặp trong bộ từng ra cùng nhau nhiều nhất: ' + s.topPairs.map(function (p) { return pad2(p.a) + '–' + pad2(p.b) + ' (' + p.c + ' lần)'; }).join(', ') + '; trung bình một cặp ' + fd(s.pairExpected, 0) + ' lần.' : '';
-    return '<div class="set-card"><div class="set-head"><div><span class="tag">Bộ ' + (i + 1) + '</span><div style="margin-top:8px">' + ballsHtml(s.numbers, sp, '') + '</div></div>' + score + '</div>' +
-      '<div class="set-meta"><span>Tổng các số <b>' + st.sum + '</b></span><span>Lẻ/chẵn <b>' + st.odd + '/' + (k - st.odd) + '</b></span><span>Nhỏ/lớn <b>' + st.low + '/' + (k - st.low) + '</b></span><span>Cặp liền nhau <b>' + st.consecutive + '</b></span>' +
+    return '<div class="set-card"><div class="set-head"><div><span class="tag">Bộ ' + (i + 1) + '</span><div style="margin-top:8px">' + prevBalls(s.numbers, sp) + '</div></div>' + score + '</div>' +
+      '<div class="set-meta"><span>Tổng các số <b>' + st.sum + '</b></span><span>Lẻ/chẵn <b>' + st.odd + '/' + (k - st.odd) + '</b></span><span>Nhỏ/lớn <b>' + st.low + '/' + (k - st.low) + '</b></span><span>Cặp liền nhau <b>' + st.consecutive + '</b></span><span>Trùng kỳ trước <b>' + prevCount(s.numbers) + '</b> số</span>' +
       (s.crowd != null ? '<span data-tip="1,00 = mức trung bình. Dưới 1: các số này ít người chọn, nếu trúng giải lớn thì ít phải chia.">Độ đông người chọn <b>×' + fd(s.crowd, 2) + '</b> ' + qm('ua-chuong', 'Số được nhiều người chọn') + '</span>' : '') + '</div>' +
       '<div class="meters">' + s.criteria.map(function (c) { return meter(c.name, c.pct, c.hint + ' Hợp hơn ' + fd(c.pct * 100, 0) + ' trong 100 bộ chọn bừa.'); }).join('') + '</div>' +
       '<p class="note" style="margin-top:8px;font-size:12.5px">Mỗi thanh là điểm 0–100 theo một tiêu chí; vạch giữa (50) là ngang một bộ chọn bừa. ' + qm('diem', 'Điểm của bộ số') + '</p>' +
@@ -425,6 +437,8 @@
     var g = U.game(), m = r.strategy, cv = r.coverage, ex = r.exact, sim = r.sim;
     var h = '<section class="panel">' + head(m.name, esc(m.desc), '<span class="tag">' + esc(m.group) + '</span>') +
       '<p class="note"><b>Hạn chế:</b> ' + esc(m.limit) + '</p>' + recordHtml(r) + '</section>';
+    var L0 = lastDraw();
+    if (L0) h += '<p class="prev-legend"><span class="ball prev xs" aria-hidden="true"></span> Số có chấm vàng đã ra ở kỳ gần nhất (#' + pad5(L0.no) + ', ' + fdate(L0.date) + ').</p>';
     h += '<div class="sets">' + r.sets.map(function (s, i) { return setCard(s, i, g); }).join('') + '</div>';
     h += '<div class="kpis">' + kpi('Cơ hội giải cao nhất của cả ' + r.sets.length + ' bộ', '1 trên ' + fi(1 / ex.pJackpot), ex.distinct + ' bộ khác nhau, bộ nào cũng có cơ hội như nhau') +
       kpi('Kỳ có ít nhất 1 bộ trúng giải', fpct(sim.pAny), 'máy tính quay thử ' + fi(sim.sims) + ' kỳ ' + qm('mo-phong', 'Mô phỏng')) +

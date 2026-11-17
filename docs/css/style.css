@@ -929,3 +929,8 @@ body.sheet-open { overflow: hidden; }
 .xk-pick.picked { outline: 2px solid var(--game, var(--accent)); outline-offset: -2px; }
 .mut { color: var(--muted); }
 .sug .badge, .alert .badge { white-space: normal; text-align: left; }
+
+/* số vừa ra ở kỳ gần nhất (mục Đề xuất) */
+.ball.prev::after { content: ""; position: absolute; top: -2px; right: -2px; width: 10px; height: 10px; border-radius: 50%; background: var(--gold, #f2b300); box-shadow: 0 0 0 2px var(--panel, #fff); }
+.ball.prev.xs::after { width: 8px; height: 8px; top: -1px; right: -1px; }
+.prev-legend { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font-size: 13px; color: var(--ink-2); }
