@@ -551,12 +551,13 @@ function analyze(allDraws, game, opts = {}) {
   // 11) Cặp số
   const q = (k * (k - 1)) / (M * (M - 1)), eP = W * q, sdP = Math.sqrt(W * q * (1 - q));
   const pc = new Uint16Array((M + 1) * (M + 1));
-  for (const d of draws) {
+  const pl = new Int32Array((M + 1) * (M + 1)).fill(-1); // kỳ gần nhất mà cặp ra cùng nhau
+  draws.forEach((d, t) => {
     const s = [...d.main].sort((a, b) => a - b);
-    for (let i = 0; i < k; i++) for (let j = i + 1; j < k; j++) pc[s[i] * (M + 1) + s[j]]++;
-  }
+    for (let i = 0; i < k; i++) for (let j = i + 1; j < k; j++) { pc[s[i] * (M + 1) + s[j]]++; pl[s[i] * (M + 1) + s[j]] = t; }
+  });
   const nPairs = (M * (M - 1)) / 2;
-  const pairs = [], heat = new Array(M * M).fill(0), counts = new Array(M * M).fill(0), pCache = new Map();
+  const pairs = [], heat = new Array(M * M).fill(0), counts = new Array(M * M).fill(0), waits = new Array(M * M).fill(0), pCache = new Map();
   let minPairP = 1;
   for (let a = 1; a <= M; a++) for (let b = a + 1; b <= M; b++) {
     const c = pc[a * (M + 1) + b], z = (c - eP) / sdP;
@@ -566,6 +567,7 @@ function analyze(allDraws, game, opts = {}) {
     pairs.push({ a, b, count: c, z, unusual: nPairs * pv < 0.05 });
     heat[(a - 1) * M + (b - 1)] = heat[(b - 1) * M + (a - 1)] = Math.round(z * 100) / 100;
     counts[(a - 1) * M + (b - 1)] = counts[(b - 1) * M + (a - 1)] = c;
+    waits[(a - 1) * M + (b - 1)] = waits[(b - 1) * M + (a - 1)] = pl[a * (M + 1) + b] >= 0 ? W - 1 - pl[a * (M + 1) + b] : W;
   }
   pairs.sort((x, y) => y.count - x.count || x.a - y.a || x.b - y.b);
   const pairNote = { expected: eP, count: nPairs, minP: minPairP, pAdj: Math.min(1, nPairs * minPairP) };
@@ -630,7 +632,7 @@ function analyze(allDraws, game, opts = {}) {
     verdict, tests, numbers, periods,
     gapInfo: { meanGap, meanTheory: gt.meanTheory, record, current: { n: cur.n, wait: cur.wait, prob: pCur }, dist: gapDist },
     parityDist, repeatDist, sumHist, sumInfo,
-    pairs: { top: pairs.slice(0, 15), bottom: pairs.slice(-15).reverse(), note: pairNote, heat, counts, size: M },
+    pairs: { top: pairs.slice(0, 15), bottom: pairs.slice(-15).reverse(), note: pairNote, heat, counts, waits, size: M },
     backtest: bt,
   };
 }

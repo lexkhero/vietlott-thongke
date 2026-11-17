@@ -279,6 +279,11 @@
   function devText(d) { return d >= 0 ? 'nhiều hơn trung bình ' + fpct(d) : 'ít hơn trung bình ' + fpct(-d); }
   function lastSeen(n) { return n.lastNo ? 'kỳ #' + pad5(n.lastNo) + ', ' + fdate(n.lastDate) : 'chưa ra trong phạm vi này'; }
 
+  // Dòng "gan" của một số: số kỳ chưa ra, lần ra gần nhất, kỷ lục vắng
+  function ganLine(n, short) {
+    var s = (n.wait === 0 ? 'Gan: vừa ra ở kỳ gần nhất' : 'Gan: đã ' + fi(n.wait) + ' kỳ chưa ra');
+    return short ? s.replace('Gan: ', '') : s + '<br>Lần ra gần nhất: ' + lastSeen(n) + '<br>Vắng lâu nhất: ' + fi(n.maxWait) + ' kỳ';
+  }
   // metric: 'count' (số lần ra) | 'wait' (số kỳ chưa ra) | 'pair' (ra cùng số S.pairOf)
   // Các số đang có trong vé của bạn (cùng loại vé đang xem)
   function pickedNums() {
@@ -300,13 +305,16 @@
         var a = S.pairOf;
         if (n.n === a) {
           cls += ' selected'; val = 'đang xem';
-          tip = '<b>Số ' + pad2(a) + '</b><br>Số đang chọn<br>Đã về ' + fi(n.count) + ' lần trong ' + fi(st.window.draws) + ' kỳ';
+          tip = '<b>Số ' + pad2(a) + '</b><br>Số đang chọn<br>Đã về ' + fi(n.count) + ' lần trong ' + fi(st.window.draws) + ' kỳ<br>' + ganLine(n);
         }
         else {
           var idx = (a - 1) * M + (n.n - 1), c = st.pairs.counts[idx], z = st.pairs.heat[idx];
           cls += ' ' + heatClass(z);
           val = fi(c) + ' lần';
-          tip = '<b>Số ' + pad2(a) + ' và số ' + pad2(n.n) + '</b><br>Ra cùng nhau ' + fi(c) + ' lần<br>Trung bình một cặp: ' + fd(st.pairs.note.expected) + ' lần';
+          var pw = st.pairs.waits ? st.pairs.waits[idx] : null;
+          tip = '<b>Số ' + pad2(a) + ' và số ' + pad2(n.n) + '</b><br>Ra cùng nhau ' + fi(c) + ' lần<br>Trung bình một cặp: ' + fd(st.pairs.note.expected) + ' lần' +
+            (pw == null ? '' : '<br>Cặp gan: ' + (pw === 0 ? 'vừa ra cùng nhau ở kỳ gần nhất' : pw >= st.window.draws ? 'chưa ra cùng nhau trong phạm vi này' : 'đã ' + fi(pw) + ' kỳ chưa ra cùng nhau')) +
+            '<br>Số ' + pad2(n.n) + ' gan: ' + ganLine(n, true) + '<br>Lần ra gần nhất: ' + lastSeen(n);
         }
         cls += ' clickable';
       } else {
