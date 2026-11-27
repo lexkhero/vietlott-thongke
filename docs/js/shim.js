@@ -88,6 +88,19 @@
         return res;
       });
     },
+    // Các kỳ đã có đủ những số đang chọn (từ 1 số trở lên, kèm số đặc biệt nếu có), tra trên toàn bộ phạm vi đã chọn
+    '/api/contain': function (q) {
+      var code = getGame(q), last = intParam(q, 'last', 0, 0, 100000), special = intParam(q, 'special', 0, 0, 100);
+      var nums = String(q.get('numbers') || '').split(/\s+/).map(Number).filter(function (n) { return n > 0; });
+      return rows(code).then(function (all) {
+        var list = last > 0 ? all.slice(-last) : all, hits = [];
+        for (var i = list.length - 1; i >= 0; i--) {
+          var d = list[i];
+          if (nums.every(function (n) { return (d.main || []).indexOf(n) >= 0; }) && (!special || (d.bonus || []).indexOf(special) >= 0)) hits.push(d);
+        }
+        return { total: list.length, count: hits.length, hits: hits.slice(0, 60) };
+      });
+    },
     '/api/crosscheck': function () { return cross || { none: true }; },
     // ---- Statistical Engine chuyên sâu (tính trên điện thoại theo phạm vi đang chọn)
     '/api/explore': function (q) {

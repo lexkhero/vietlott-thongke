@@ -582,13 +582,50 @@
     $('#ck-pairs').html(pairPanelHtml(game(), nums));
     autoCheck();
   }
-  // Tự kiểm tra khi đã chọn đủ số (và số đặc biệt nếu loại này cần); chưa đủ thì nhắc chọn thêm
+  // Các kỳ đã có đủ những số đang chọn (từ 2 số trở lên, tính cả số đặc biệt), dùng khi chưa chọn đủ vé
+  function partialHtml(g, sel, want, r) {
+    var N = r.total, hits = r.hits, k = sel.length, exp = null, i;
+    if (k >= 2 && !want) { // xác suất ngẫu nhiên để một kỳ chứa đủ k số đã chọn
+      var pr = 1; for (i = 0; i < k; i++) pr *= (g.nMain - i) / (g.max - i);
+      exp = N * pr;
+    }
+    var label = sel.map(pad2).join(', ') + (want ? (sel.length ? ' + ' : '') + 'số đặc biệt ' + pad2(want) : '');
+    var h = '<section class="panel">' + head(r.count ? 'Đã có ' + fi(r.count) + ' kỳ chứa đủ các số này' : 'Chưa kỳ nào chứa đủ các số này',
+      'Các số ' + label + ' trong ' + fi(N) + ' kỳ.' + (exp != null ? ' Quay ngẫu nhiên thì trung bình khoảng ' + fd(exp, 1) + ' kỳ.' : '') + (r.count ? ' Số có màu là số bạn đã chọn.' : ''));
+    if (r.count) {
+      var ball2 = function (d) {
+        var b = '<span class="balls">' + (d.main || []).map(function (n) { return ball(n, 'sm' + (sel.indexOf(n) >= 0 ? '' : ' flat')); }).join('');
+        if (d.bonus && d.bonus.length) b += '<span class="sep" aria-hidden="true"></span>' + d.bonus.map(function (n) { return ball(n, 'sm' + (want && n === want ? ' special' : ' flat'), 'Số đặc biệt'); }).join('');
+        return b + '</span>';
+      };
+      h += '<div class="table-wrap tall"><table class="data"><thead><tr><th>Kỳ</th><th>Ngày</th><th>Kết quả kỳ đó</th><th class="r">Giải cao nhất</th></tr></thead><tbody>' +
+        hits.map(function (d) {
+          var pz = (d.prizes || [])[0], w = pz ? toInt(pz[2]) : 0;
+          return '<tr><td>#' + pad5(d.no) + '</td><td>' + fdate(d.date) + '</td><td>' + ball2(d) + '</td><td class="r">' + (pz ? esc(moneyShort(toInt(pz[3]))) + '<br><span class="small ' + (w ? 'up' : 'muted') + '">' + (w ? fi(w) + ' vé trúng' : 'chưa có người trúng') + '</span>' : '–') + '</td></tr>';
+        }).join('') + '</tbody></table></div>' + (r.count > hits.length ? '<p class="note">Hiển thị ' + hits.length + ' kỳ gần nhất trong ' + fi(r.count) + ' kỳ.</p>' : '');
+    }
+    return h + '<p class="note" style="margin-top:10px">Đây chỉ là số liệu quá khứ, không dự báo được kỳ sau.</p></section>';
+  }
+  function runPartial(sel, sp) {
+    var code = S.game, key = sel.map(pad2).join(' ') + '|' + sp;
+    $('#ck-more').addClass('loading');
+    getJson('/api/contain?game=' + code + '&last=' + S.last + '&numbers=' + encodeURIComponent(sel.map(pad2).join(' ')) + (sp ? '&special=' + sp : ''))
+      .done(function (r) {
+        var cur = pickedNums().map(pad2).join(' ') + '|' + (specialPick(game()) ? curSp() : '');
+        if (S.game === code && S.section === 'cap-so' && cur === key) $('#ck-more').html(partialHtml(game(), sel, sp ? +sp : 0, r));
+      })
+      .fail(function (m) { $('#ck-more').html('<div class="alert error">' + esc(m) + '</div>'); })
+      .always(function () { $('#ck-more').removeClass('loading'); });
+  }
+  // Tự kiểm tra khi đã chọn đủ số (và số đặc biệt nếu loại này cần); chưa đủ thì liệt kê các kỳ đã có đủ những số đang chọn
   function autoCheck() {
     var g = game(), sel = pickedNums(), sp = curSp(), hint = '';
     if (sel.length === g.nMain && (!specialPick(g) || sp)) { runCheck(); return; }
     if (sel.length && sel.length < g.nMain) hint = 'Đã chọn ' + sel.length + '/' + g.nMain + ' số. Chọn thêm ' + (g.nMain - sel.length) + ' số để xem các kỳ bộ số trúng giải.';
     else if (sel.length === g.nMain && specialPick(g) && !sp) hint = 'Chọn thêm số đặc biệt (từ 1 đến ' + g.bonusMax + ') để xem các kỳ bộ số trúng giải.';
-    $('#ck-out').html(hint ? '<div class="alert info">' + esc(hint) + '</div>' : '');
+    var spv = specialPick(g) ? sp : '', total = sel.length + (spv ? 1 : 0);
+    $('#ck-out').html((hint ? '<div class="alert info">' + esc(hint) + '</div>' : '') + '<div id="ck-more" class="block"></div>');
+    if (total >= 2) runPartial(sel, spv);
   }
   function runCheck() {
     var code = S.game, sel = pickedNums(), sp = curSp(), nums = sel.map(pad2).join(' ');
